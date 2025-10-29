@@ -1,5 +1,5 @@
 <div align="center">
-<img src="./assets/logo-burn-neutral.webp" width="350px"/>
+<img src="./assets/gaba-burn-logo.png" width="300px"/>
 
 ---
 
@@ -9,7 +9,7 @@
 
 ***The legacy of Gaba Burn lives in Rust.***
 
-<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcGwyZWd2M3Uzamh4aWs4amcybTh3dWluOHlwbmI5aHQ0cHhiZG5nciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9Qha6bqbCs31q8/giphy.gif" width="400px"/>
+<img src='./assets/gaba-gifs/gabagool-team-takes -action.gif' width='400px'>
 
 ---
 </div>
