@@ -265,4 +265,4 @@ All tests verify:
 
 Built for waste management companies by people who understand the industry.
 
-**Famiglia Routes** - Because family takes care of family. 🚛
+**Famiglia Routes** - Because family takes care of family.
