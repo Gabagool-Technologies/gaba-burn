@@ -1,11 +1,12 @@
 pub use burn_common::device::*;
 
+/// Device ID type
+pub type DeviceId = String;
+
 /// The handle device trait allows to get an id for a backend device.
-pub trait DeviceOps:
-    Clone + Default + PartialEq + Send + Sync + core::fmt::Debug + burn_common::device::Device
-{
-    /// Returns the [device id](DeviceId).
+pub trait DeviceOps: Clone + Default + PartialEq + Send + Sync + core::fmt::Debug {
+    /// Returns the device id.
     fn id(&self) -> DeviceId {
-        self.to_id()
+        format!("{:?}", self)
     }
 }

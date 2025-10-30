@@ -93,6 +93,11 @@ jobs:
           rust-toolchain: ${{ matrix.toolchain }}
           cache-key: ${{ matrix.rust }}-linux
       # --------------------------------------------------------------------------------
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      # --------------------------------------------------------------------------------
       - name: Audit
         run: cargo xtask check audit
       # --------------------------------------------------------------------------------
@@ -125,6 +130,11 @@ jobs:
         with:
           rust-toolchain: ${{ matrix.toolchain }}
           cache-key: ${{ matrix.rust }}-linux
+      # --------------------------------------------------------------------------------
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
       # --------------------------------------------------------------------------------
       - name: Documentation Build
         run: cargo xtask doc build
