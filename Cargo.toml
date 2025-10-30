@@ -57,7 +57,7 @@ futures = "0.3"
 futures-util = "0.3"
 gix-tempfile = { version = "19.0.1", features = ["signals"] }
 globwalk = "0.9.1"
-hashbrown = "0.15.5"
+hashbrown = "0.16.0"
 hound = "3.5.1"
 image = "0.25.8"
 indicatif = "0.18.0"
@@ -65,12 +65,12 @@ js-sys = "0.3.77"
 libm = "0.2.15"
 log = { default-features = false, version = "0.4.28" }
 paste = "1"
-planus = { version = "=1.1" }
+planus = { version = "=1.2.0" }
 polars = { version = "0.51.0", features = ["lazy"] }
 pretty_assertions = "1.4.1"
 proc-macro2 = "1.0.101"
-protobuf = "3.7.2"
-protobuf-codegen = "3.7.2"
+protobuf = "4.33.0-release"
+protobuf-codegen = "4.33.0-release"
 quote = "1.0.41"
 r2d2 = "0.8.10"
 r2d2_sqlite = "0.31.0"
@@ -188,3 +188,11 @@ tracel-xtask = { version = "=2.1.11" }
 
 [profile.dev]
 debug = 1 # Speed up compilation time and not necessary.
+
+## Workspace-level feature flags (documentation only).
+## A virtual manifest (workspace Cargo.toml) cannot declare actual Cargo [features].
+## Use this metadata as a canonical source-of-truth for CI matrices and for adding
+## workspace crates that expose the real feature flags.
+[workspace.metadata.overpower_features]
+list = ["metal", "cuda", "rocm", "wasm", "quantize", "simd", "profiling"]
+default = []

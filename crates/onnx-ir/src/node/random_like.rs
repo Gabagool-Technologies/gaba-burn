@@ -1,6 +1,5 @@
 use crate::ir::{ArgType, ElementType, Node, TensorType};
 use crate::protos::tensor_proto::DataType;
-use protobuf::Enum;
 
 /// Update output rank for RandomLike operations based on input rank.
 pub fn random_like_update_output(node: &mut Node) {
@@ -9,14 +8,14 @@ pub fn random_like_update_output(node: &mut Node) {
     let dtype = node
         .attrs
         .get("dtype")
-        .map(|val| DataType::from_i32(val.clone().into_i32()).unwrap())
-        .unwrap_or(DataType::FLOAT);
+    .map(|val| DataType::from(val.clone().into_i32()))
+    .unwrap_or(DataType::Float);
     log::debug!("RandomLike dtype for {}: {:?}", node.name, dtype);
 
     let elem_type = match dtype {
-        DataType::FLOAT => ElementType::Float32,
-        DataType::FLOAT16 => ElementType::Float16,
-        DataType::DOUBLE => ElementType::Float64,
+        DataType::Float => ElementType::Float32,
+        DataType::Float16 => ElementType::Float16,
+        DataType::Double => ElementType::Float64,
         _ => panic!("Tensor with type {dtype:?} not supported for random output"),
     };
 
@@ -52,7 +51,7 @@ mod tests {
 
     #[test]
     fn test_random_like_float() {
-        let mut node = create_test_node(DataType::FLOAT.value(), 3, None);
+    let mut node = create_test_node(i32::from(DataType::Float), 3, None);
         random_like_update_output(&mut node);
 
         match &node.outputs[0].ty {
@@ -66,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_random_like_double() {
-        let mut node = create_test_node(DataType::DOUBLE.value(), 2, Some(vec![5, 10]));
+    let mut node = create_test_node(i32::from(DataType::Double), 2, Some(vec![5, 10]));
         random_like_update_output(&mut node);
 
         match &node.outputs[0].ty {
@@ -82,15 +81,15 @@ mod tests {
     #[test]
     #[should_panic(expected = "Only tensor input is valid")]
     fn test_random_like_invalid_input() {
-        let mut node = create_test_node(DataType::FLOAT.value(), 2, None);
+        let mut node = create_test_node(i32::from(DataType::Float), 2, None);
         node.inputs[0].ty = ArgType::Scalar(ElementType::Float32);
         random_like_update_output(&mut node);
     }
 
     #[test]
-    #[should_panic(expected = "Tensor with type INT32 not supported for random output")]
+    #[should_panic(expected = "Tensor with type DataType::Int32 not supported for random output")]
     fn test_random_like_unsupported_type() {
-        let mut node = create_test_node(DataType::INT32.value(), 2, None);
+        let mut node = create_test_node(i32::from(DataType::Int32), 2, None);
         random_like_update_output(&mut node);
     }
 }

@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    fs::File,
+    fs,
     path::Path,
 };
 
@@ -16,8 +16,6 @@ use super::{
 
 use super::ir::{ArgType, Argument, Node, NodeType};
 use super::rank_inference::rank_inference;
-
-use protobuf::Message;
 
 const LIFT_CONSTANTS_FOR_NODE_TYPES: [NodeType; 30] = [
     NodeType::BatchNormalization,
@@ -52,20 +50,19 @@ const LIFT_CONSTANTS_FOR_NODE_TYPES: [NodeType; 30] = [
     NodeType::Unsqueeze,
 ];
 use crate::protos::tensor_proto::DataType as DT;
-use protobuf::Enum;
 
 pub fn element_type_from_proto(dt_i32: i32) -> Result<ElementType, String> {
-    match DT::from_i32(dt_i32).ok_or_else(|| format!("unknown dtype {}", dt_i32))? {
-        DT::FLOAT => Ok(ElementType::Float32),
-        DT::DOUBLE => Ok(ElementType::Float64),
-        DT::FLOAT16 => Ok(ElementType::Float16),
-        DT::INT64 => Ok(ElementType::Int64),
-        DT::INT32 => Ok(ElementType::Int32),
-        DT::UINT16 => Ok(ElementType::Uint16),
-        DT::UINT8 => Ok(ElementType::Uint8),
-        DT::INT8 => Ok(ElementType::Int8),
-        DT::BOOL => Ok(ElementType::Bool),
-        DT::STRING => Ok(ElementType::String),
+    match DT::from(dt_i32) {
+        DT::Float => Ok(ElementType::Float32),
+        DT::Double => Ok(ElementType::Float64),
+        DT::Float16 => Ok(ElementType::Float16),
+        DT::Int64 => Ok(ElementType::Int64),
+        DT::Int32 => Ok(ElementType::Int32),
+        DT::Uint16 => Ok(ElementType::Uint16),
+        DT::Uint8 => Ok(ElementType::Uint8),
+        DT::Int8 => Ok(ElementType::Int8),
+        DT::Bool => Ok(ElementType::Bool),
+        DT::String => Ok(ElementType::String),
         other => Err(format!("unsupported dtype {:?}", other)),
     }
 }
@@ -104,7 +101,7 @@ impl GraphData {
 
         let constants = initializers
             .iter()
-            .map(|x| (x.name.clone(), Argument::from_initializer(x)))
+            .map(|x| (x.name().to_string(), Argument::from_initializer(x)))
             .collect::<HashMap<String, Argument>>();
         let outputs = outputs
             .iter()
@@ -116,13 +113,13 @@ impl GraphData {
             .map(|(i, x)| {
                 let in_name = format!("input{}", i + 1);
 
-                input_name_map.insert(x.name.clone(), IOEntry::In(i));
-                input_key_map.insert(in_name.clone(), x.name.clone());
+                input_name_map.insert(x.name().to_string(), IOEntry::In(i));
+                input_key_map.insert(in_name.clone(), x.name().to_string());
 
-                let mut arg = Argument::try_from(x.clone()).unwrap();
-                if let Some(initial_arg) = constants.get(&x.name) && arg.value.is_none() {
-                        log::warn!("Input {} is also an initializer. Initializer as default values are currently not supported", x.name);
-                        arg.copy_value(initial_arg);
+        let mut arg = Argument::try_from(x.clone()).unwrap();
+        if let Some(initial_arg) = constants.get(&x.name().to_string()) && arg.value.is_none() {
+            log::warn!("Input {} is also an initializer. Initializer as default values are currently not supported", x.name().to_string());
+            arg.copy_value(initial_arg);
                 }
 
                 arg.name = in_name;
@@ -138,6 +135,7 @@ impl GraphData {
             input_key_map,
         }
     }
+
 
     /// Get the value of an input from the original input name. Used during proto conversion
     pub(crate) fn init_in(&self, proto_str: &str) -> Argument {
@@ -242,31 +240,37 @@ impl OnnxGraphBuilder {
     pub(crate) fn build(mut self, model_proto: &ModelProto) -> OnnxGraph {
         self.constants_types = LIFT_CONSTANTS_FOR_NODE_TYPES.into_iter().collect();
 
+        let graph = model_proto.graph();
+        let inputs: Vec<_> = graph.input().iter().map(|v| v.to_owned()).collect();
+        let outputs: Vec<_> = graph.output().iter().map(|v| v.to_owned()).collect();
+        let initializers: Vec<_> = graph.initializer().iter().map(|v| v.to_owned()).collect();
         let mut graph_data = GraphData::new(
-            &model_proto.graph.input,
-            &model_proto.graph.output,
-            &model_proto.graph.initializer,
+            &inputs,
+            &outputs,
+            &initializers,
         );
-        for t in &model_proto.graph.initializer {
+        for t in &graph.initializer() {
             log::debug!(
                 "init name={:?} dtype={:?} dims={:?} raw_len={} i32={} i64={} f32={} f64={}",
-                t.name,
-                crate::protos::tensor_proto::DataType::from_i32(t.data_type),
-                t.dims,
-                t.raw_data.len(),
-                t.int32_data.len(),
-                t.int64_data.len(),
-                t.float_data.len(),
-                t.double_data.len(),
+                t.name().to_string(),
+                crate::protos::tensor_proto::DataType::from(t.data_type()),
+                t.dims().iter().collect::<Vec<_>>(),
+                t.raw_data().to_vec().len(),
+                t.int32_data().len(),
+                t.int64_data().len(),
+                t.float_data().len(),
+                t.double_data().len(),
             );
         }
         // First pass: count constant usage
-        self.count_constant_usage(&model_proto.graph.node);
+        let nodes: Vec<_> = graph.node().iter().map(|n| n.to_owned()).collect();
+        self.count_constant_usage(&nodes);
 
-        let mut node_iter = model_proto.graph.node.iter().peekable();
+        let mut node_iter = graph.node().iter().peekable();
 
         while let Some(node_proto) = node_iter.next() {
-            let mut node = convert_node_proto(node_proto, &graph_data);
+            let node_proto_owned = node_proto.to_owned();
+            let mut node = convert_node_proto(&node_proto_owned, &graph_data);
 
             remap_node_type(&mut node);
             self.handle_node_renaming(&mut node);
@@ -707,22 +711,22 @@ impl OnnxGraphBuilder {
         // First, identify all constant output names
         let mut constant_outputs = HashSet::new();
         for node in nodes {
-            if node.op_type == "Constant" {
-                for output in &node.output {
-                    constant_outputs.insert(output.clone());
+            if node.op_type() == "Constant" {
+                for output in node.output().iter() {
+                    constant_outputs.insert(output.to_string());
                 }
             }
         }
 
         // Now count how many times each constant is used as an input
         for node in nodes {
-            if node.op_type == "Constant" {
+            if node.op_type().to_str().unwrap_or("") == "Constant" {
                 continue; // Skip constant nodes themselves
             }
 
-            for input in &node.input {
-                if constant_outputs.contains(input) {
-                    *self.constant_usage_count.entry(input.clone()).or_insert(0) += 1;
+            for input in node.input().iter() {
+                if constant_outputs.contains(&input.to_string()) {
+                    *self.constant_usage_count.entry(input.to_string()).or_insert(0) += 1;
                 }
             }
         }
@@ -1119,14 +1123,22 @@ impl OnnxGraphBuilder {
 pub fn parse_onnx(onnx_path: &Path) -> OnnxGraph {
     log::info!("Parsing ONNX file: {}", onnx_path.display());
 
-    // Open the file
-    let mut file = File::open(onnx_path)
-        .unwrap_or_else(|_| panic!("Unable to open file: {}", onnx_path.display()));
-    let onnx_model: ModelProto =
-        Message::parse_from_reader(&mut file).expect("Unable to parse ONNX file");
+    // Read the file
+    let bytes = fs::read(onnx_path)
+        .unwrap_or_else(|_| panic!("Unable to read file: {}", onnx_path.display()));
+    // Parse using view and convert to owned - protobuf v4 uses view-based parsing
+    // Cast &[u8] to &ProtoBytes, then to ModelProtoView
+    let proto_bytes: &protobuf::ProtoBytes = unsafe {
+        &*(bytes.as_slice() as *const [u8] as *const protobuf::ProtoBytes)
+    };
+    let model_view: crate::protos::ModelProtoView = unsafe {
+        std::mem::transmute(proto_bytes)
+    };
+    let onnx_model = model_view.to_owned();
 
     // Check opset versions - must be >= MIN_OPSET_VERSION
-    if !verify_opsets(&onnx_model.opset_import, MIN_OPSET_VERSION) {
+    let opsets: Vec<_> = onnx_model.opset_import().iter().map(|o| o.to_owned()).collect();
+    if !verify_opsets(&opsets, MIN_OPSET_VERSION) {
         panic!(
             "Unsupported ONNX opset version. This implementation requires opset {MIN_OPSET_VERSION} or higher. \
             Please upgrade your model using the ONNX shape inference tool. \
@@ -1136,30 +1148,31 @@ pub fn parse_onnx(onnx_path: &Path) -> OnnxGraph {
 
     // ONNX nodes must be topologically sorted per spec:
     // https://github.com/onnx/onnx/blob/main/docs/IR.md#graphs
+    let nodes_owned: Vec<_> = onnx_model.graph().node().iter().map(|n| n.to_owned()).collect();
     debug_assert!(
-        onnx_model.graph.node.is_top_sorted(),
+        nodes_owned.is_top_sorted(),
         "Nodes are not topologically sorted"
     );
-    log::debug!("Number of nodes: {:?}", onnx_model.graph.node.len());
-    log::debug!("Number of inputs: {:?}", onnx_model.graph.input.len());
+    log::debug!("Number of nodes: {:?}", onnx_model.graph().node().len());
+    log::debug!("Number of inputs: {:?}", onnx_model.graph().input().len());
 
     log::debug!(
         "Number of initializers: {:?}",
-        onnx_model.graph.initializer.len()
+        onnx_model.graph().initializer().len()
     );
 
-    log::debug!("Number of outputs: {:?}", onnx_model.graph.output.len());
+    log::debug!("Number of outputs: {:?}", onnx_model.graph().output().len());
 
     // Debug information about opset versions
-    for opset in &onnx_model.opset_import {
+    for opset in &onnx_model.opset_import() {
         log::debug!(
             "Opset domain: {:?}, version: {:?}",
-            if opset.domain.is_empty() {
-                "<default>"
-            } else {
-                &opset.domain
-            },
-            opset.version
+                if opset.domain().is_empty() {
+                    "<default>"
+                } else {
+                    opset.domain().to_str().unwrap_or("<invalid>")
+                },
+                opset.version()
         );
     }
 
@@ -1215,7 +1228,7 @@ impl TopologicalSortable for Vec<NodeProto> {
         // Iterate over each node in the vector
         for (node_position, node) in self.iter().enumerate() {
             // Iterate over each output of the node
-            for output in &node.output {
+            for output in node.output().iter() {
                 // If the output is empty, we don't want to check the rest of the graph, inputs and outputs that are optional
                 // can end up as empty strings, so we can't use that as a reason to count the graph as not sorted
                 if output.is_empty() {
@@ -1224,7 +1237,7 @@ impl TopologicalSortable for Vec<NodeProto> {
                 // Iterate over each other node in the vector
                 for (other_node_position, other_node) in self.iter().enumerate() {
                     // If the other node has an input that matches the current output
-                    if other_node.input.contains(output) {
+                    if other_node.input().iter().any(|i| i == output) {
                         // If the position of the current node is greater than the position of the other node
                         if node_position > other_node_position {
                             // The vector is not topologically sorted

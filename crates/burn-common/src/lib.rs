@@ -9,6 +9,15 @@
 /// Id module contains types for unique identifiers.
 pub mod id;
 
+/// Device and error abstractions used across crates.
+pub mod device;
+
+/// Error types shared across Burn crates.
+///
+/// This module exposes the `Error` enum used by device and other
+/// low-level abstractions.
+pub mod error;
+
 pub use cubecl_common::*;
 
 #[cfg(feature = "rayon")]

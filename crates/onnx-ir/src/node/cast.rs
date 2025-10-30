@@ -109,27 +109,27 @@ mod tests {
 
     #[test]
     fn test_cast_config() {
-        let node = create_test_node(2, DataType::INT64.value() as i64);
+        let node = create_test_node(2, i32::from(DataType::Int32) as i64);
         let config = cast_config(&node);
-        assert_eq!(config.to, ElementType::Int64);
+        assert_eq!(config.to, ElementType::Int32);
 
-        let node = create_test_node(2, DataType::FLOAT.value() as i64);
+    let node = create_test_node(2, i32::from(DataType::Float) as i64);
         let config = cast_config(&node);
         assert_eq!(config.to, ElementType::Float32);
 
-        let node = create_test_node(2, DataType::BOOL.value() as i64);
+        let node = create_test_node(2, i32::from(DataType::Bool) as i64);
         let config = cast_config(&node);
         assert_eq!(config.to, ElementType::Bool);
     }
 
     #[test]
     fn test_cast_float_to_int64() {
-        let mut node = create_test_node(2, DataType::INT64.value() as i64);
+        let mut node = create_test_node(2, i32::from(DataType::Int32) as i64);
         cast_update_outputs(&mut node);
 
         match &node.outputs[0].ty {
             ArgType::Tensor(tensor) => {
-                assert_eq!(tensor.elem_type, ElementType::Int64);
+                assert_eq!(tensor.elem_type, ElementType::Int32);
                 assert_eq!(tensor.rank, 2);
             }
             _ => panic!("Expected tensor output"),
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_cast_scalar_handling() {
-        let mut node = create_test_node(0, DataType::BOOL.value() as i64);
+        let mut node = create_test_node(0, i32::from(DataType::Bool) as i64);
         cast_update_outputs(&mut node);
 
         match &node.outputs[0].ty {
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Cast: multiple inputs are not supported")]
     fn test_cast_multiple_inputs() {
-        let mut node = create_test_node(2, DataType::INT64.value() as i64);
+        let mut node = create_test_node(2, i32::from(DataType::Int32) as i64);
         node.inputs.push(Argument {
             name: "extra".to_string(),
             ty: ArgType::Tensor(TensorType {
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_cast_scalar_to_bool() {
-        let mut node = create_scalar_test_node(DataType::BOOL.value() as i64);
+        let mut node = create_scalar_test_node(i32::from(DataType::Bool) as i64);
         cast_update_outputs(&mut node);
 
         match &node.outputs[0].ty {
@@ -191,7 +191,7 @@ mod tests {
         let mut node = NodeBuilder::new(NodeType::Cast, "test_cast")
             .input_shape("shape_input", 3)
             .output_shape("output", 3) // Will be overwritten
-            .attr_int("to", DataType::FLOAT.value() as i64)
+            .attr_int("to", i32::from(DataType::Float) as i64)
             .build();
 
         cast_update_outputs(&mut node);
@@ -211,7 +211,7 @@ mod tests {
         let mut node = NodeBuilder::new(NodeType::Cast, "test_cast")
             .input_shape("shape_input", 4)
             .output_shape("output", 4) // Will be preserved
-            .attr_int("to", DataType::INT64.value() as i64)
+            .attr_int("to", i32::from(DataType::Int64) as i64)
             .build();
 
         cast_update_outputs(&mut node);
@@ -229,7 +229,7 @@ mod tests {
         let mut node = NodeBuilder::new(NodeType::Cast, "test_cast")
             .input_shape("shape_input", 3)
             .output_shape("output", 3) // Will be overwritten
-            .attr_int("to", DataType::BOOL.value() as i64)
+            .attr_int("to", i32::from(DataType::Bool) as i64)
             .build();
 
         cast_update_outputs(&mut node);

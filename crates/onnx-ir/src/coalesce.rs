@@ -1,4 +1,4 @@
-use std::{iter::Peekable, slice::Iter};
+use std::iter::Peekable;
 
 use super::{
     from_onnx::GraphData,
@@ -7,11 +7,12 @@ use super::{
     protos::NodeProto,
 };
 use crate::ir::{ArgType, Data, TensorData};
+use protobuf::RepeatedIter;
 
 /// The function transforms the graph into a new one where the nodes are coalesced into a single node.
 pub fn coalesce(
     node: &mut Node,
-    nodes_iter: &mut Peekable<Iter<NodeProto>>,
+    nodes_iter: &mut Peekable<RepeatedIter<NodeProto>>,
     graph_data: &GraphData,
 ) {
     #[allow(clippy::single_match)]
@@ -129,7 +130,7 @@ fn transpose_flattened<T: Copy>(matrix: Vec<T>, rows: usize, cols: usize) -> Vec
 /// Add node is used to represent bias in PyTorch.
 pub(crate) fn convert_matmul_to_linear(
     node: &mut Node,
-    iter_mut: &mut Peekable<Iter<NodeProto>>,
+    iter_mut: &mut Peekable<RepeatedIter<NodeProto>>,
     graph_data: &GraphData,
 ) {
     if node.inputs.len() != 2 {
@@ -153,8 +154,9 @@ pub(crate) fn convert_matmul_to_linear(
 
     log::debug!("peeking next node for bias conversion");
     // Check the next node for potential conversion
-    if let Some(peek_node) = iter_mut.peek() {
-        let peek_node = convert_node_proto(peek_node, graph_data);
+    if let Some(peek_node_view) = iter_mut.peek() {
+        let peek_node_owned = peek_node_view.to_owned();
+        let peek_node = convert_node_proto(&peek_node_owned, graph_data);
         if is_add_node_with_bias(&peek_node, node) {
             convert_and_remove_add_node(&peek_node, node);
 

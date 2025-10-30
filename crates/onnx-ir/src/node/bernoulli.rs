@@ -1,6 +1,5 @@
 use crate::ir::{ArgType, ElementType, Node, TensorType};
 use crate::protos::tensor_proto::DataType;
-use protobuf::Enum;
 
 /// Update output rank for Bernoulli operation.
 pub fn bernoulli_update_output(node: &mut Node) {
@@ -18,16 +17,16 @@ pub fn bernoulli_update_output(node: &mut Node) {
     let dtype = node
         .attrs
         .get("dtype")
-        .map(|val| DataType::from_i32(val.clone().into_i32()).unwrap());
+    .map(|val| DataType::from(val.clone().into_i32()));
 
     log::debug!("Bernoulli: dtype for {}: {:?}", node.name, dtype);
 
     let elem_type = dtype.map_or(tensor.elem_type, |dtype| match dtype {
-        DataType::FLOAT => ElementType::Float32,
-        DataType::INT32 => ElementType::Int32,
-        DataType::INT64 => ElementType::Int64,
-        DataType::DOUBLE => ElementType::Float64,
-        DataType::BOOL => ElementType::Bool,
+        DataType::Float => ElementType::Float32,
+        DataType::Int32 => ElementType::Int32,
+        DataType::Int64 => ElementType::Int64,
+        DataType::Double => ElementType::Float64,
+        DataType::Bool => ElementType::Bool,
         _ => panic!("Bernoulli: tensor with type {dtype:?} not supported for random output"),
     });
     log::debug!("Bernoulli: elem type for {}: {:?}", node.name, elem_type);
@@ -60,7 +59,7 @@ mod tests {
 
     #[test]
     fn test_bernoulli_int() {
-        let mut node = create_test_node(Some(DataType::INT32.value()), Some(vec![3, 4, 2]));
+        let mut node = create_test_node(Some(i32::from(DataType::Int32)), Some(vec![3, 4, 2]));
         bernoulli_update_output(&mut node);
 
         match &node.outputs[0].ty {
@@ -104,7 +103,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Bernoulli: only tensor input is valid")]
     fn test_bernoulli_invalid_input() {
-        let mut node = create_test_node(Some(DataType::FLOAT.value()), None);
+        let mut node = create_test_node(Some(i32::from(DataType::Float)), None);
         node.inputs[0].ty = ArgType::Scalar(ElementType::Float32);
         bernoulli_update_output(&mut node);
     }

@@ -33,7 +33,7 @@ impl Argument {
     }
 
     pub fn from_initializer(initializer: &TensorProto) -> Argument {
-        let name = initializer.name.clone();
+        let name = initializer.name().to_string();
 
         // 1) Canonical path first.
         match TensorData::try_from(initializer.clone()) {
@@ -60,7 +60,7 @@ impl Argument {
             }
             Err(orig_err) => {
                 // 2) Fallback handling for scalars & empty tensors, with precise diagnostics.
-                let dims: Vec<i64> = initializer.dims.clone();
+                let dims: Vec<i64> = initializer.dims().iter().collect();
                 if dims.iter().any(|&d| d < 0) {
                     panic!(
                         "invalid tensor shape (negative dims) for initializer '{}': {:?}",
@@ -77,17 +77,17 @@ impl Argument {
 
                 // Payload len across typed fields (best-effort).
                 let payload_len = {
-                    let i32n = initializer.int32_data.len();
-                    let i64n = initializer.int64_data.len();
-                    let f32n = initializer.float_data.len();
-                    let f64n = initializer.double_data.len();
-                    let sn = initializer.string_data.len();
+                    let i32n = initializer.int32_data().len();
+                    let i64n = initializer.int64_data().len();
+                    let f32n = initializer.float_data().len();
+                    let f64n = initializer.double_data().len();
+                    let sn = initializer.string_data().len();
                     let typed = *[i32n, i64n, f32n, f64n, sn].iter().max().unwrap_or(&0);
                     if typed > 0 {
                         typed
                     } else {
                         // raw_data fallback: many exporters put single scalars here
-                        if !initializer.raw_data.is_empty() && dim_elems == 1 {
+                        if !initializer.raw_data().is_empty() && dim_elems == 1 {
                             1
                         } else {
                             0
@@ -116,7 +116,7 @@ impl Argument {
                 if dim_elems == 0 && payload_len == 0 && !dims.is_empty() {
                     // Map ONNX data_type -> ElementType.
                     // (Covers common types used in initializers; extend as needed.)
-                    let elem = match initializer.data_type {
+                    let elem = match initializer.data_type() {
                         1 => ElementType::Float32,  // FLOAT
                         2 => ElementType::Uint8,    // UINT8
                         3 => ElementType::Int8,     // INT8

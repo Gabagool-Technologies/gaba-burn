@@ -103,7 +103,7 @@ mod tests {
             .input_tensor_f32("input", 2, Some(vec![4, 4]))
             .output_tensor_f32("output", 2, None)
             .attr_int("k", -1)
-            .attr_int("dtype", DataType::INT64.value() as i64)
+            .attr_int("dtype", i32::from(DataType::Int64) as i64)
             .build();
 
         let config = eye_like_config(&node);
@@ -116,7 +116,7 @@ mod tests {
         let mut node = NodeBuilder::new(NodeType::EyeLike, "test_eye_like")
             .input_tensor_f32("input", 2, Some(vec![3, 3]))
             .output_tensor_f32("output", 2, None)
-            .attr_int("dtype", DataType::INT32.value() as i64)
+            .attr_int("dtype", i32::from(DataType::Int32) as i64)
             .build();
 
         eye_like_update_output(&mut node);
