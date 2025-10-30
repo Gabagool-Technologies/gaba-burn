@@ -2,6 +2,10 @@
 //!
 //! The Zig kernel is feature-gated behind the `zig` feature. By default the pure-Rust
 //! implementation is used so CI and macOS builds don't require Zig or native toolchains.
+//!
+//! Also includes route optimization kernels for Famiglia Routes application.
+
+pub mod route_optimizer;
 
 #[cfg(feature = "zig")]
 extern "C" {

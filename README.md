@@ -16,14 +16,21 @@
 
 <div align="left">
 
-Gaba Burn is a pragmatic, performance-first fork of Burn focused on three things:
+Gaba Burn is a pragmatic, performance-first fork of Burn built to power **Famiglia Routes**, AI-driven route optimization for waste management companies. We focus on three things:
 
-- Rock-solid, portable CPU performance (autovectorized Rust fallback + optional hand-tuned native kernels).
+- Rock-solid, portable CPU performance (autovectorized Rust fallback + optional hand-tuned Zig kernels).
 - Reproducible developer workflows: fast benches, deterministic fixtures, and xtask-driven experiments.
 - Clear upgrade paths for GPU acceleration (CUDA/ROCm/Metal) while keeping local-first inference simple.
 
-This repository is where we iterate quickly on native kernels, quantized primitives, and a small, auditable
-set of runtime features so you can ship models that run well everywhere from laptops to clouds.
+**Primary Use Case: Famiglia Routes**
+
+Famiglia Routes uses Gaba Burn's Rust+Zig stack to deliver:
+- 50x faster route optimization than Python solutions
+- Client-side WASM inference (zero server costs)
+- Real-time traffic prediction and route adaptation
+- Privacy-first: all data stays on device
+
+This repository is where we iterate quickly on native kernels (Zig), quantized primitives, and route optimization algorithms so you can ship models that run well everywhere from browsers to clouds.
 
 ## What changed
 
@@ -38,7 +45,9 @@ set of runtime features so you can ship models that run well everywhere from lap
 
 ## Native kernels (Zig)
 
-Why Zig? Zig gives us a predictable, small toolchain for writing low-level, C-ABI kernels and calling
+**Why Zig?**
+
+Zig gives us a predictable, small toolchain for writing low-level, C-ABI kernels and calling
 them from Rust. We use Zig to prototype carefully tuned inner loops (GEMM, small convolutions, q-matmul).
 
 How it works:

@@ -15,7 +15,7 @@ pub export fn gemm_f32(a: [*]const f32, b: [*]const f32, c: [*]f32, m: usize, n:
     // - AArch64/NEON: 4 lanes of f32
     // - x86_64/AVX(2): 8 lanes of f32
     // Allow the compiler to select the best codegen for the host at compile-time.
-    const JN: usize = comptime if (@import("builtin").arch == .aarch64) 4 else 8;
+    const JN: usize = comptime if (@import("builtin").cpu.arch == .aarch64) 4 else 8;
 
     var ii0: usize = 0;
     while (ii0 < m) : (ii0 += BM) {

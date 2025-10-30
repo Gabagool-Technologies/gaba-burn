@@ -54,18 +54,35 @@ fn main() {
 
     let out_path = Path::new(&out_dir).join(format!("libgemm.{}", lib_ext));
 
-    // Zig requires a single root source file. Create a temporary combined Zig file that
-    // concatenates the individual sources so we can compile them in one invocation.
+    // Create a root Zig file that exports all C functions from individual modules
     let combined = Path::new(&out_dir).join("combined_gemm.zig");
     {
         use std::fs::File;
         use std::io::Write;
         let mut f = File::create(&combined).expect("failed to create combined Zig source");
+        
+        // Write a single std import at the top
+        writeln!(f, "const std = @import(\"std\");").ok();
+        writeln!(f, "const math = std.math;").ok();
+        writeln!(f, "").ok();
+        
+        // For each source file, inline its content but skip duplicate std imports
         for src in &zig_sources {
             let contents = fs::read_to_string(src).expect("failed to read zig source");
             writeln!(f, "// Begin {}\n", src).ok();
-            writeln!(f, "{}\n", contents).ok();
-            writeln!(f, "// End {}\n", src).ok();
+            
+            // Filter out std imports and other common imports
+            for line in contents.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("const std = @import(\"std\")") ||
+                   trimmed.starts_with("const math = std.math") {
+                    // Skip duplicate imports
+                    continue;
+                }
+                writeln!(f, "{}", line).ok();
+            }
+            
+            writeln!(f, "\n// End {}\n", src).ok();
         }
     }
 
