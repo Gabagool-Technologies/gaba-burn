@@ -162,9 +162,9 @@ def main():
     verify_files(pt_path, st_path)
     print("")
 
-    print(f"✅ Model files generated successfully!")
+    print(f"Model files generated successfully!")
     print("")
-    print("📊 Summary:")
+    print("Summary:")
     print(f"  PyTorch file: {pt_path.name} ({pt_size_mb:.2f} MB)")
     print(f"  SafeTensors file: {st_path.name} ({st_size_mb:.2f} MB)")
     print("")

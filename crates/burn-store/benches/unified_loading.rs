@@ -166,7 +166,7 @@ fn main() {
             let st_size = fs::metadata(&st_path).unwrap().len() as f64 / 1_048_576.0;
             let pt_size = fs::metadata(&pt_path).unwrap().len() as f64 / 1_048_576.0;
 
-            println!("✅ Found model files:");
+            println!("Found model files:");
             if let Some(size) = bp_size {
                 println!("  Burnpack: {} ({:.1} MB)", bp_path.display(), size);
             }

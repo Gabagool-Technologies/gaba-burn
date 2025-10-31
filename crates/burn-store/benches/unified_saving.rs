@@ -82,9 +82,9 @@ fn ensure_output_dir() -> Result<(), String> {
 fn main() {
     match ensure_output_dir() {
         Ok(()) => {
-            println!("✅ Output directory ready: {}", get_output_dir().display());
+            println!("Output directory ready: {}", get_output_dir().display());
             println!();
-            println!("🚀 Running unified saving benchmarks...");
+            println!("Running unified saving benchmarks...");
             println!();
             println!("Comparing 3 saving methods:");
             println!("  1. BurnpackStore (new native format)");
@@ -108,7 +108,7 @@ fn main() {
             divan::main();
         }
         Err(msg) => {
-            eprintln!("❌ {}", msg);
+            eprintln!("{}", msg);
             std::process::exit(1);
         }
     }

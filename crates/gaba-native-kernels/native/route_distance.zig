@@ -15,7 +15,7 @@ pub const GeoPoint = extern struct {
 
 /// Calculate Haversine distance between two points in kilometers
 /// C ABI export for Rust FFI
-export fn haversine_distance(p1: *const GeoPoint, p2: *const GeoPoint) f64 {
+export fn haversine_distance(p1: *const GeoPoint, p2: *const GeoPoint) callconv(.c) f64 {
     const lat1_rad = p1.lat * DEG_TO_RAD;
     const lat2_rad = p2.lat * DEG_TO_RAD;
     const dlat = (p2.lat - p1.lat) * DEG_TO_RAD;
@@ -32,7 +32,7 @@ export fn haversine_distance(p1: *const GeoPoint, p2: *const GeoPoint) f64 {
 
 /// Calculate total route distance for array of points
 /// Returns total distance in kilometers
-export fn route_total_distance(points: [*]const GeoPoint, n: usize) f64 {
+export fn route_total_distance(points: [*]const GeoPoint, n: usize) callconv(.c) f64 {
     if (n < 2) return 0.0;
 
     var total: f64 = 0.0;
@@ -51,7 +51,7 @@ export fn distance_matrix(
     points: [*]const GeoPoint,
     n: usize,
     out_matrix: [*]f64,
-) void {
+) callconv(.c) void {
     var i: usize = 0;
     while (i < n) : (i += 1) {
         var j: usize = 0;
@@ -67,7 +67,7 @@ export fn distance_matrix(
 
 /// Fast approximate distance using equirectangular projection
 /// Much faster than Haversine, good for short distances
-export fn fast_distance_approx(p1: *const GeoPoint, p2: *const GeoPoint) f64 {
+export fn fast_distance_approx(p1: *const GeoPoint, p2: *const GeoPoint) callconv(.c) f64 {
     const lat1_rad = p1.lat * DEG_TO_RAD;
     const lat2_rad = p2.lat * DEG_TO_RAD;
     const dlng = (p2.lng - p1.lng) * DEG_TO_RAD;
@@ -80,7 +80,7 @@ export fn fast_distance_approx(p1: *const GeoPoint, p2: *const GeoPoint) f64 {
 }
 
 /// Calculate route distance using fast approximation
-export fn route_total_distance_fast(points: [*]const GeoPoint, n: usize) f64 {
+export fn route_total_distance_fast(points: [*]const GeoPoint, n: usize) callconv(.c) f64 {
     if (n < 2) return 0.0;
 
     var total: f64 = 0.0;

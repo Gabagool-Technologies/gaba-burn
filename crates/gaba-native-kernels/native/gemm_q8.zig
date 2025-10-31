@@ -1,7 +1,7 @@
 // Simple quantized GEMM: inputs are u8, outputs are i64 accumulators per element
 // ABI: gemm_q8_to_i64(a: [*]const u8, b: [*]const u8, c: [*]i64, m: usize, n: usize, k: usize)
 
-pub export fn gemm_q8_to_i64(a: [*]const u8, b: [*]const u8, c: [*]i64, m: usize, n: usize, k: usize) void {
+pub export fn gemm_q8_to_i64(a: [*]const u8, b: [*]const u8, c: [*]i64, m: usize, n: usize, k: usize) callconv(.c) void {
     // Zero output
     var idx: usize = 0;
     while (idx < m * n) : (idx += 1) {

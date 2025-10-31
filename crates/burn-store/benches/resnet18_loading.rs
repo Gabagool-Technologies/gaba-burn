@@ -22,7 +22,7 @@ fn main() {
     // Check if ResNet18 file exists
     let path = resnet18_path();
     if !path.exists() {
-        eprintln!("❌ ResNet18 model not found!");
+        eprintln!("ResNet18 model not found!");
         eprintln!();
         eprintln!("Please download it first by running:");
         eprintln!("  python benches/download_resnet18.py");
@@ -40,15 +40,15 @@ fn main() {
 
     if size_mb < 40.0 || size_mb > 50.0 {
         eprintln!(
-            "⚠️ Warning: ResNet18 file size ({:.1} MB) seems unusual",
+            "Warning: ResNet18 file size ({:.1} MB) seems unusual",
             size_mb
         );
         eprintln!("Expected size is around 45 MB");
     }
 
-    println!("✅ Found ResNet18 model at: {}", path.display());
-    println!("📦 File size: {:.1} MB", size_mb);
-    println!("📊 Running ResNet18 loading benchmarks...\n");
+    println!("Found ResNet18 model at: {}", path.display());
+    println!("File size: {:.1} MB", size_mb);
+    println!("Running ResNet18 loading benchmarks...\n");
 
     // Run divan benchmarks
     divan::main();

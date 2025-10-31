@@ -1,7 +1,7 @@
 // Minimal Zig GEMM implementation with C ABI
 // Compile with: zig cc -O ReleaseSmall -fPIC -shared -o libgemm.so native/gemm.zig
 
-pub export fn gemm_f32(a: [*]const f32, b: [*]const f32, c: [*]f32, m: usize, n: usize, k: usize) void {
+pub export fn gemm_f32(a: [*]const f32, b: [*]const f32, c: [*]f32, m: usize, n: usize, k: usize) callconv(.c) void {
     // SIMD-friendly blocked GEMM.
     // Primary strategy: iterate outer over M, then N in small vector-width blocks (JN)
     // so the inner K loop multiplies a scalar from A by a contiguous vector slice of B.

@@ -10,6 +10,10 @@ members = [
     "crates/burn-import/onnx-tests",
     "crates/burn-import/safetensors-tests",
     "crates/burn-collective/multinode-tests",
+    "crates/burn-inference",
+    "crates/gaba-train-cli",
+    "crates/gaba-pqc",
+    "crates/gaba-metal-backend",
     "examples/*",
     "xtask",
 ]

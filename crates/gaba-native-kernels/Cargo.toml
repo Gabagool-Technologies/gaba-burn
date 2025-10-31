@@ -6,9 +6,14 @@ edition = "2021"
 [features]
 # When enabled, build.rs will attempt to compile the Zig kernel and link it.
 zig = []
+ml-inference = ["burn-inference"]
 
 [dependencies]
 anyhow = "1.0"
+burn-inference = { path = "../burn-inference", optional = true }
+chrono = "0.4"
+rayon = "1.10"
+num_cpus = "1.16"
 
 [dev-dependencies]
 approx = "0.5"

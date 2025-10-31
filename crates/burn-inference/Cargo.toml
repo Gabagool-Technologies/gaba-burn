@@ -1,0 +1,16 @@
+[package]
+name = "burn-inference"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ort = { version = "2.0.0-rc.10", features = ["half", "download-binaries", "copy-dylibs"] }
+ndarray = "0.15"
+anyhow = "1.0"
+thiserror = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+approx = "0.5"

@@ -32,7 +32,7 @@ def download_resnet18():
     # Check if already downloaded
     if output_path.exists():
         file_size_mb = output_path.stat().st_size / (1024 * 1024)
-        print(f"✅ ResNet18 already exists at: {output_path}")
+        print(f"ResNet18 already exists at: {output_path}")
         print(f"   Size: {file_size_mb:.1f} MB")
         return str(output_path)
 
@@ -47,7 +47,7 @@ def download_resnet18():
         torch.save(model.state_dict(), output_path, _use_new_zipfile_serialization=False)
 
         file_size_mb = output_path.stat().st_size / (1024 * 1024)
-        print(f"✅ Successfully downloaded ResNet18 to: {output_path}")
+        print(f"Successfully downloaded ResNet18 to: {output_path}")
         print(f"   Size: {file_size_mb:.1f} MB")
         print(f"   Format: PyTorch legacy format")
 

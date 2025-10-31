@@ -218,7 +218,7 @@ complex_structure = {
 }
 save_test_file("complex_structure.pt", complex_structure, "Complex nested structure")
 
-print(f"\n✅ Generated {len(list(test_dir.glob('*.pt')))} test files in {test_dir}")
+print(f"\nGenerated {len(list(test_dir.glob('*.pt')))} test files in {test_dir}")
 print("\nTest files can be used to verify PyTorch reader functionality:")
 print("- Different data types (float32, int64, bool, etc.)")
 print("- Multi-dimensional tensors")

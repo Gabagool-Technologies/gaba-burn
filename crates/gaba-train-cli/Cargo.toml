@@ -1,0 +1,48 @@
+[package]
+name = "gaba-train-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "gaba-train"
+path = "src/main.rs"
+
+[dependencies]
+# Data handling
+ndarray = { version = "0.15", features = ["serde"] }
+csv = "1.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+
+# Training utilities
+rand = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+
+# Parallel processing
+rayon = "1.10"
+tokio = { version = "1.47", features = ["full"] }
+
+# Progress tracking
+indicatif = "0.17"
+
+# CLI
+clap = { version = "4.5", features = ["derive", "color", "suggestions"] }
+colored = "2.1"
+num_cpus = "1.16"
+
+# Gaba components
+gaba-pqc = { path = "../gaba-pqc", optional = true }
+gaba-metal-backend = { path = "../gaba-metal-backend", optional = true }
+gaba-native-kernels = { path = "../gaba-native-kernels" }
+
+[features]
+default = []
+full = ["pqc", "metal", "zig"]
+pqc = ["dep:gaba-pqc"]
+metal = ["dep:gaba-metal-backend", "gaba-pqc/metal"]
+zig = []
+
+[dev-dependencies]
+approx = "0.5"

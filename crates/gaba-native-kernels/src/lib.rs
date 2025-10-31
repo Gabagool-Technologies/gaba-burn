@@ -6,6 +6,10 @@
 //! Also includes route optimization kernels for Famiglia Routes application.
 
 pub mod route_optimizer;
+pub mod ml_route_optimizer;
+
+pub use route_optimizer::*;
+pub use ml_route_optimizer::MLRouteOptimizer;
 
 #[cfg(feature = "zig")]
 extern "C" {
@@ -61,6 +65,44 @@ pub fn gemm_rust(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usi
     }
 }
 
+/// Multi-threaded GEMM using rayon
+pub fn gemm_rust_parallel(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usize) {
+    use rayon::prelude::*;
+    use std::sync::Mutex;
+    
+    assert_eq!(a.len(), m * k);
+    assert_eq!(b.len(), k * n);
+    assert_eq!(c.len(), m * n);
+
+    let c_mutex = Mutex::new(c);
+    let block_size = 64;
+    let num_blocks = (m + block_size - 1) / block_size;
+    
+    (0..num_blocks).into_par_iter().for_each(|block_idx| {
+        let i_start = block_idx * block_size;
+        let i_end = (i_start + block_size).min(m);
+        
+        let mut local_results = vec![(0usize, 0usize, 0f32); (i_end - i_start) * n];
+        let mut idx = 0;
+        
+        for i in i_start..i_end {
+            for j in 0..n {
+                let mut sum = 0f32;
+                for p in 0..k {
+                    sum += a[i * k + p] * b[p * n + j];
+                }
+                local_results[idx] = (i, j, sum);
+                idx += 1;
+            }
+        }
+        
+        let mut c_guard = c_mutex.lock().unwrap();
+        for (i, j, val) in local_results {
+            c_guard[i * n + j] = val;
+        }
+    });
+}
+
 /// Call the Zig/native kernel when the feature is enabled, otherwise fall back to Rust.
 pub fn gemm(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usize) {
     assert_eq!(a.len(), m * k);
@@ -74,7 +116,11 @@ pub fn gemm(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usize) {
 
     #[cfg(not(feature = "zig"))]
     {
-        gemm_rust(a, b, c, m, n, k);
+        if m >= 256 {
+            gemm_rust_parallel(a, b, c, m, n, k);
+        } else {
+            gemm_rust(a, b, c, m, n, k);
+        }
     }
 }
 

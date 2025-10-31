@@ -7,7 +7,7 @@ use crate::{
 use alloc::string::String;
 use burn_common::stub::Mutex;
 use burn_ir::{BackendIr, HandleKind, TensorHandle};
-use burn_tensor::backend::{Backend, DeviceId, DeviceOps};
+use burn_tensor::backend::{Backend, DeviceOps};
 use burn_tensor::ops::{BoolTensor, FloatTensor, IntTensor, QuantizedTensor};
 use core::marker::PhantomData;
 use rand::SeedableRng;
@@ -22,23 +22,6 @@ pub enum NdArrayDevice {
 }
 
 impl DeviceOps for NdArrayDevice {}
-
-impl burn_common::device::Device for NdArrayDevice {
-    fn from_id(_device_id: DeviceId) -> Self {
-        Self::Cpu
-    }
-
-    fn to_id(&self) -> DeviceId {
-        DeviceId {
-            type_id: 0,
-            index_id: 0,
-        }
-    }
-
-    fn device_count(_type_id: u16) -> usize {
-        1
-    }
-}
 
 impl Default for NdArrayDevice {
     fn default() -> Self {

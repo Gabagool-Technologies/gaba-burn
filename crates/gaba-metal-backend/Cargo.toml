@@ -1,0 +1,30 @@
+[package]
+name = "gaba-metal-backend"
+version = "0.1.0"
+edition = "2021"
+description = "Zero-copy Metal backend for Burn with unified memory optimization"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = []
+metal = ["dep:metal", "dep:objc"]
+
+[dependencies]
+burn-tensor = { path = "../burn-tensor", version = "0.20.0", default-features = false }
+burn-core = { path = "../burn-core", version = "0.20.0", default-features = false }
+
+# Metal acceleration
+metal = { version = "0.29", optional = true }
+objc = { version = "0.2", optional = true }
+
+# Core dependencies
+thiserror = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+metal = { version = "0.29", optional = true }
+objc = { version = "0.2", optional = true }
+core-foundation = "0.9"
+
+[dev-dependencies]
+approx = "0.5"

@@ -12,7 +12,7 @@ export fn tsp_nearest_neighbor(
     n: usize,
     start_idx: usize,
     out_route: [*]usize,
-) f64 {
+) callconv(.c) f64 {
     if (n == 0) return 0.0;
     if (n == 1) {
         out_route[0] = 0;

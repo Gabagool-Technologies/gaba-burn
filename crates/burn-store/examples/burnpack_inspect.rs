@@ -65,9 +65,9 @@ fn main() {
 
     model.save_into(&mut store).expect("Failed to save model");
 
-    println!("✅ Successfully created: {}", output_path);
+    println!("Successfully created: {}", output_path);
     println!();
-    println!("📋 File Structure:");
+    println!("File Structure:");
     println!("  ┌─────────────────────────────────────┐");
     println!("  │ Header (10 bytes)                   │");
     println!("  ├─────────────────────────────────────┤");
@@ -91,7 +91,7 @@ fn main() {
     println!("  │ - linear3.bias [10]                 │");
     println!("  └─────────────────────────────────────┘");
     println!();
-    println!("📊 Model Contents:");
+    println!("Model Contents:");
     println!("  - linear1.weight: [64, 128] = 8,192 params → 32,768 bytes");
     println!("  - linear1.bias:   [64]      = 64 params    → 256 bytes");
     println!("  - linear2.weight: [32, 64]  = 2,048 params → 8,192 bytes");
@@ -113,7 +113,7 @@ fn main() {
     if let Ok(metadata) = std::fs::metadata(&output_path) {
         let file_size = metadata.len();
         println!(
-            "📦 File size: {} bytes ({:.2} KB)",
+            "File size: {} bytes ({:.2} KB)",
             file_size,
             file_size as f64 / 1024.0
         );

@@ -1,8 +1,6 @@
 // Rust FFI bindings for Zig route optimization kernels
 // Pure C ABI interface
 
-use std::os::raw::c_void;
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct GeoPoint {
@@ -133,11 +131,12 @@ pub fn optimize_route_2opt(
     route: &mut [usize],
     max_iterations: usize,
 ) -> f64 {
-    let n = route.len();
-    
     #[cfg(feature = "zig")]
-    unsafe {
-        tsp_two_opt(distance_matrix.as_ptr(), n, route.as_mut_ptr(), max_iterations)
+    {
+        let n = route.len();
+        unsafe {
+            tsp_two_opt(distance_matrix.as_ptr(), n, route.as_mut_ptr(), max_iterations)
+        }
     }
     
     #[cfg(not(feature = "zig"))]
