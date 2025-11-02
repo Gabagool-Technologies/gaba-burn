@@ -61,22 +61,40 @@ fn main() {
         use std::io::Write;
         let mut f = File::create(&combined).expect("failed to create combined Zig source");
         
-        // Write a single std import at the top
+        // Write common imports and constants at the top
         writeln!(f, "const std = @import(\"std\");").ok();
         writeln!(f, "const math = std.math;").ok();
         writeln!(f, "").ok();
+        writeln!(f, "// Common constants").ok();
+        writeln!(f, "const SIMD_WIDTH: usize = 8;").ok();
+        writeln!(f, "const BLOCK_M: usize = 64;").ok();
+        writeln!(f, "const BLOCK_N: usize = 64;").ok();
+        writeln!(f, "const BLOCK_K: usize = 128;").ok();
+        writeln!(f, "const BLOCK_SIZE_M: usize = 64;").ok();
+        writeln!(f, "const BLOCK_SIZE_N: usize = 64;").ok();
+        writeln!(f, "const BLOCK_SIZE_K: usize = 256;").ok();
+        writeln!(f, "const CACHE_LINE: usize = 128;").ok();
+        writeln!(f, "").ok();
         
-        // For each source file, inline its content but skip duplicate std imports
+        // For each source file, inline its content but skip duplicate imports and constants
         for src in &zig_sources {
             let contents = fs::read_to_string(src).expect("failed to read zig source");
             writeln!(f, "// Begin {}\n", src).ok();
             
-            // Filter out std imports and other common imports
+            // Filter out std imports and common constants
             for line in contents.lines() {
                 let trimmed = line.trim();
                 if trimmed.starts_with("const std = @import(\"std\")") ||
-                   trimmed.starts_with("const math = std.math") {
-                    // Skip duplicate imports
+                   trimmed.starts_with("const math = std.math") ||
+                   trimmed.starts_with("const SIMD_WIDTH: usize") ||
+                   trimmed.starts_with("const BLOCK_SIZE_M:") ||
+                   trimmed.starts_with("const BLOCK_SIZE_N:") ||
+                   trimmed.starts_with("const BLOCK_SIZE_K:") ||
+                   trimmed.starts_with("const BLOCK_M:") ||
+                   trimmed.starts_with("const BLOCK_N:") ||
+                   trimmed.starts_with("const BLOCK_K:") ||
+                   trimmed.starts_with("const CACHE_LINE:") {
+                    // Skip duplicate imports and constants
                     continue;
                 }
                 writeln!(f, "{}", line).ok();

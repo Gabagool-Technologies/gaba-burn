@@ -19,7 +19,9 @@ extern "C" {
     fn haversine_distance(p1: *const GeoPoint, p2: *const GeoPoint) -> f64;
     fn route_total_distance(points: *const GeoPoint, n: usize) -> f64;
     fn distance_matrix(points: *const GeoPoint, n: usize, out_matrix: *mut f64);
+    #[allow(dead_code)]
     fn fast_distance_approx(p1: *const GeoPoint, p2: *const GeoPoint) -> f64;
+    #[allow(dead_code)]
     fn route_total_distance_fast(points: *const GeoPoint, n: usize) -> f64;
     
     fn tsp_nearest_neighbor(
@@ -174,6 +176,7 @@ pub fn solve_tsp_optimized(
 
 // Rust fallback implementations
 
+#[allow(dead_code)]
 fn haversine_distance_rust(p1: &GeoPoint, p2: &GeoPoint) -> f64 {
     const EARTH_RADIUS_KM: f64 = 6371.0;
     const DEG_TO_RAD: f64 = std::f64::consts::PI / 180.0;

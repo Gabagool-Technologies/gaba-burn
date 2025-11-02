@@ -7,8 +7,8 @@
 ### 1. Build
 
 ```bash
-cd gaba-burn/crates/gaba-train-cli
-cargo build --release --features full
+cd gaba-burn
+cargo build --release --package gaba-train-cli --features "pqc,zig"
 ```
 
 ### 2. Generate Training Data
@@ -41,29 +41,52 @@ cargo build --release --features full
 ### 5. Benchmark Performance
 
 ```bash
-./target/release/gaba-train bench --size medium --metal --zig
+./target/release/gaba-train bench --size 128
 ```
 
 ## Expected Output
 
 ```
-╔═══════════════════════════════════════════════════════════╗
-║  GABA-BURN: Hardcore ML Training with Rust+Zig+Metal      ║
-║  Zero-copy · PQC · SIMD · Apple Silicon Optimized         ║
-╚═══════════════════════════════════════════════════════════╝
+Running performance benchmark...
+Benchmark configuration:
+  Size: 128
+  Metal GPU: disabled
+  Large matrices: no
 
-Benchmark size: medium
-Metal acceleration: enabled
-Zig kernels: enabled
+Running benchmarks...
 
-Matrix dimensions: 512x512 * 512x512
-Zig GEMM: 12.34ms
-Performance: 21.85 GFLOPS
+  128x128x128 - RustVectorized
+    Time: 1.47 ms
+    Performance: 2.86 GFLOPS
+
+  256x256x256 - Quantized
+    Time: 9.08 ms
+    Performance: 3.70 GFLOPS
+
+  512x512x512 - RustVectorized
+    Time: 88.47 ms
+    Performance: 3.03 GFLOPS
+
+Benchmark complete!
+```
+
+## Additional Commands
+
+### System Information
+
+```bash
+./target/release/gaba-train info
+```
+
+### Singularity Engine Demo
+
+```bash
+./target/release/gaba-train singularity --iterations 100 --size 128
 ```
 
 ## Next Steps
 
-- Read `GABA_TRAIN_CLI_GUIDE.md` for detailed documentation
-- Check `../IMPLEMENTATION_SUMMARY.md` for architecture details
-- Explore Metal shaders in `../../crates/gaba-pqc/src/shaders/`
-- Review Zig kernels in `../../crates/gaba-native-kernels/native/`
+- Read `CLI_USER_GUIDE.md` for detailed documentation
+- Check `../model-training/` for training guides
+- Explore Zig kernels in `../../crates/gaba-native-kernels/native/`
+- Review benchmarks in `../benchmarks/`

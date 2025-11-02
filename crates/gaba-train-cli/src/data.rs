@@ -9,6 +9,7 @@ use std::fs::File;
 /// Traffic speed data point
 #[derive(Debug, Clone, Deserialize)]
 pub struct TrafficRecord {
+    #[allow(dead_code)]
     pub timestamp: String,
     pub road_segment_id: String,
     pub speed_mph: f32,
@@ -23,12 +24,16 @@ pub struct TrafficRecord {
 /// Route completion data point
 #[derive(Debug, Clone, Deserialize)]
 pub struct RouteRecord {
+    #[allow(dead_code)]
     pub route_id: String,
     pub stops_count: u32,
     pub total_distance_miles: f32,
+    #[allow(dead_code)]
     pub predicted_time_minutes: u32,
     pub actual_time_minutes: u32,
+    #[allow(dead_code)]
     pub traffic_delay_minutes: u32,
+    #[allow(dead_code)]
     pub start_time: String,
     pub weather: String,
     pub season: String,

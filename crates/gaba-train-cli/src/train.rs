@@ -80,11 +80,12 @@ pub fn train_traffic_model(
     pb.finish_with_message("Training complete");
     
     println!("Saving model to {:?}...", output_path);
-    std::fs::create_dir_all(output_path)?;
+    if let Some(parent) = output_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
     
-    let model_path = output_path.join("traffic_model.bin");
-    model.save(&model_path)?;
-    println!("Model saved to {:?}", model_path);
+    model.save(output_path)?;
+    println!("Model saved to {:?}", output_path);
     
     Ok(())
 }
@@ -161,11 +162,12 @@ pub fn train_route_model(
     pb.finish_with_message("Training complete");
     
     println!("Saving model to {:?}...", output_path);
-    std::fs::create_dir_all(output_path)?;
+    if let Some(parent) = output_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
     
-    let model_path = output_path.join("route_model.bin");
-    model.save(&model_path)?;
-    println!("Model saved to {:?}", model_path);
+    model.save(output_path)?;
+    println!("Model saved to {:?}", output_path);
     
     Ok(())
 }

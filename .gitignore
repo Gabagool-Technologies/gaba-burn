@@ -5,6 +5,7 @@ target
 # Mac OS
 .DS_Store
 
+# IDE
 .dir-locals.el
 .idea
 .vscode
@@ -25,11 +26,31 @@ uv.lock
 
 # Proprietary training data and models
 models/
+datasets/
 *.bin
 *.onnx
 *.safetensors
+*.csv
+*.parquet
 /tmp/gaba-bench/
+
+# Commercial secrets
+docs/secret/
+*.key
+*.pem
+*.env
+.env.local
+
+# Training artifacts
+checkpoints/
+logs/
+wandb/
+mlruns/
 
 # Build artifacts with optimization details
 target/release/
 *.rlib
+
+# Test results and archives
+docs/test-results/
+archive/

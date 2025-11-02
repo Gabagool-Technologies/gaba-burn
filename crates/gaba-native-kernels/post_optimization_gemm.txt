@@ -1,0 +1,90 @@
+   Compiling gaba-native-kernels v0.1.0 (/Users/tim/Dev/vibegeneer/dev/gaba-burn/gaba-burn/crates/gaba-native-kernels)
+warning: function `gemm_f32` is never used
+  --> crates/gaba-native-kernels/src/lib.rs:20:8
+   |
+20 |     fn gemm_f32(a: *const f32, b: *const f32, c: *mut f32, m: usize, n: usize, k: usize);
+   |        ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `conv2d_general` is never used
+  --> crates/gaba-native-kernels/src/lib.rs:28:8
+   |
+28 |     fn conv2d_general(input: *const f32, kernel: *const f32, output: *mut f32,
+   |        ^^^^^^^^^^^^^^
+
+warning: `gaba-native-kernels` (lib) generated 2 warnings
+    Finished `bench` profile [optimized] target(s) in 2.07s
+     Running benches/bench_gemm.rs (/Users/tim/Dev/vibegeneer/dev/gaba-burn/gaba-burn/target/release/deps/bench_gemm-1d6ef90d4aa2433d)
+Gnuplot not found, using plotters backend
+Benchmarking rust/gemm_64x64x64
+Benchmarking rust/gemm_64x64x64: Warming up for 3.0000 s
+Benchmarking rust/gemm_64x64x64: Collecting 100 samples in estimated 5.0768 s (50k iterations)
+Benchmarking rust/gemm_64x64x64: Analyzing
+rust/gemm_64x64x64      time:   [101.21 µs 101.38 µs 101.55 µs]
+                        change: [+0.2949% +0.7931% +1.2481%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low severe
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+
+Benchmarking native/gemm_64x64x64
+Benchmarking native/gemm_64x64x64: Warming up for 3.0000 s
+Benchmarking native/gemm_64x64x64: Collecting 100 samples in estimated 6.5554 s (10k iterations)
+Benchmarking native/gemm_64x64x64: Analyzing
+native/gemm_64x64x64    time:   [655.22 µs 657.41 µs 660.70 µs]
+                        change: [-19.430% -18.925% -18.324%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking rust/gemm_128x128x128
+Benchmarking rust/gemm_128x128x128: Warming up for 3.0000 s
+Benchmarking rust/gemm_128x128x128: Collecting 100 samples in estimated 9.2288 s (10k iterations)
+Benchmarking rust/gemm_128x128x128: Analyzing
+rust/gemm_128x128x128   time:   [909.07 µs 911.64 µs 915.35 µs]
+                        change: [+0.3812% +0.9144% +1.3939%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) low severe
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+  4 (4.00%) high severe
+
+Benchmarking native/gemm_128x128x128
+Benchmarking native/gemm_128x128x128: Warming up for 3.0000 s
+Benchmarking native/gemm_128x128x128: Collecting 100 samples in estimated 5.2761 s (1000 iterations)
+Benchmarking native/gemm_128x128x128: Analyzing
+native/gemm_128x128x128 time:   [5.2566 ms 5.2775 ms 5.3056 ms]
+                        change: [-20.376% -19.609% -18.972%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
+
+Benchmarking rust/gemm_256x256x256
+Benchmarking rust/gemm_256x256x256: Warming up for 3.0000 s
+Benchmarking rust/gemm_256x256x256: Collecting 100 samples in estimated 5.0506 s (500 iterations)
+Benchmarking rust/gemm_256x256x256: Analyzing
+rust/gemm_256x256x256   time:   [10.132 ms 10.175 ms 10.243 ms]
+                        change: [+0.5406% +1.0433% +1.7670%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high severe
+
+Benchmarking native/gemm_256x256x256
+Benchmarking native/gemm_256x256x256: Warming up for 3.0000 s
+Benchmarking native/gemm_256x256x256: Collecting 100 samples in estimated 8.5246 s (200 iterations)
+Benchmarking native/gemm_256x256x256: Analyzing
+native/gemm_256x256x256 time:   [42.742 ms 42.884 ms 43.103 ms]
+                        change: [-19.961% -19.551% -19.091%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+

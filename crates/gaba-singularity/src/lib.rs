@@ -1,0 +1,21 @@
+pub mod kernel_registry;
+pub mod orchestrator;
+pub mod performance_db;
+pub mod profiler;
+pub mod selector;
+pub mod jit;
+pub mod jit_executor;
+pub mod jit_codegen;
+pub mod federated;
+pub mod federated_http;
+
+pub use kernel_registry::{KernelRegistry, KernelType};
+pub use orchestrator::AdaptiveKernelOrchestrator;
+pub use performance_db::{PerformanceVector, PerformanceVectorDB};
+pub use profiler::{HardwareProfiler, WorkloadFeatures};
+pub use selector::KernelSelector;
+pub use jit::{JITCompiler, WorkloadSignature, OptimizationLevel};
+pub use jit_executor::JITExecutor;
+pub use jit_codegen::{X86CodeGenerator, generate_gemm_kernel};
+pub use federated::{FederatedLearningEngine, PeerConnection, AggregatedKnowledge};
+pub use federated_http::{SyncRequest, SyncResponse, start_http_server};

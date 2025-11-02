@@ -1,8 +1,6 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-
 extern crate alloc;
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use core::fmt;
 
 /// Unified error used by device and related APIs.

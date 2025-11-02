@@ -8,7 +8,17 @@
 
 mod data;
 mod models;
+mod augmentation;
+mod onnx_export;
+mod dataset_generator;
+mod federated_training;
+mod realtime_updates;
+mod demand_forecasting;
+mod vehicle_maintenance;
+mod driver_behavior;
 mod train;
+mod metrics;
+mod adam;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -104,28 +114,41 @@ enum Commands {
     
     /// Benchmark training performance
     Bench {
-        /// Benchmark size (small/medium/large)
-        #[arg(short, long, default_value = "medium")]
+        /// Matrix size
+        #[arg(short, long, default_value = "128,256,512")]
         size: String,
         
-        /// Enable Metal acceleration
+        /// Enable Metal GPU acceleration
         #[arg(long)]
         metal: bool,
         
         /// Enable Zig kernels
         #[arg(long)]
         zig: bool,
+        
+        /// Test large matrices for Metal GPU
+        #[arg(long)]
+        large: bool,
     },
     
     /// Show system capabilities
     Info,
+    
+    /// Run singularity engine demo
+    Singularity {
+        /// Number of iterations
+        #[arg(long, default_value_t = 100)]
+        iterations: usize,
+        
+        /// Matrix size
+        #[arg(long, default_value_t = 128)]
+        size: usize,
+    },
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    
-    print_banner();
     
     match cli.command {
         Commands::Traffic { data, output, epochs, lr } => {
@@ -160,25 +183,22 @@ async fn main() -> Result<()> {
             println!("{}", "✓ Model verified!".green().bold());
         }
         
-        Commands::Bench { size, metal, zig } => {
+        Commands::Bench { size, metal, zig, large } => {
             println!("{}", "Running performance benchmark...".yellow().bold());
-            run_benchmark(&size, metal, zig)?;
+            run_benchmark(&size, metal, zig, large)?;
         }
         
         Commands::Info => {
             print_system_info();
         }
+        
+        Commands::Singularity { iterations, size } => {
+            println!("{}", "Running Singularity Engine Demo...".yellow().bold());
+            run_singularity_demo(iterations, size)?;
+        }
     }
     
     Ok(())
-}
-
-fn print_banner() {
-    println!("{}", "╔═══════════════════════════════════════════════════════════╗".cyan());
-    println!("{}", "║  GABA-BURN: Hardcore ML Training with Rust+Zig+Metal      ║".cyan().bold());
-    println!("{}", "║  Zero-copy · PQC · SIMD · Apple Silicon Optimized         ║".cyan());
-    println!("{}", "╚═══════════════════════════════════════════════════════════╝".cyan());
-    println!();
 }
 
 #[cfg(feature = "pqc")]
@@ -202,82 +222,125 @@ async fn verify_model(encrypted_path: &PathBuf, original_path: &PathBuf) -> Resu
     Ok(())
 }
 
-fn run_benchmark(size: &str, _metal: bool, zig: bool) -> Result<()> {
-    println!("Benchmark size: {}", size.yellow());
-    println!("Zig kernels: {}", if zig { "enabled".green() } else { "multi-threaded Rust".cyan() });
+fn run_benchmark(size: &str, metal: bool, _zig: bool, large: bool) -> Result<()> {
+    use gaba_singularity::AdaptiveKernelOrchestrator;
     
-    let (m, n, k) = match size {
-        "small" => (128, 128, 128),
-        "medium" => (512, 512, 512),
-        "large" => (2048, 2048, 2048),
-        _ => (512, 512, 512),
+    println!("Benchmark configuration:");
+    println!("  Size: {}", size.yellow());
+    println!("  Metal GPU: {}", if metal { "enabled".green() } else { "disabled".red() });
+    println!("  Large matrices: {}", if large { "yes".green() } else { "no".cyan() });
+    
+    let sizes = if large {
+        vec![
+            ("512x512x512", 512),
+            ("768x768x768", 768),
+            ("1024x1024x1024", 1024),
+        ]
+    } else {
+        vec![
+            ("128x128x128", 128),
+            ("256x256x256", 256),
+            ("512x512x512", 512),
+        ]
     };
     
-    println!("\nMatrix dimensions: {}x{} * {}x{}", m, k, k, n);
+    let orchestrator = AdaptiveKernelOrchestrator::new();
     
-    #[cfg(feature = "zig")]
-    {
-        if zig {
-            use gaba_native_kernels::gemm;
-            let a = vec![1.0f32; m * k];
-            let b = vec![1.0f32; k * n];
-            let mut c = vec![0.0f32; m * n];
-            
-            let start = std::time::Instant::now();
-            gemm(&a, &b, &mut c, m, n, k);
-            let elapsed = start.elapsed();
-            
-            println!("Zig GEMM: {:.2}ms", elapsed.as_secs_f64() * 1000.0);
-            let gflops = (2.0 * m as f64 * n as f64 * k as f64) / elapsed.as_secs_f64() / 1e9;
-            println!("Performance: {:.2} GFLOPS", gflops);
-            return Ok(());
-        }
+    println!("\nRunning benchmarks...\n");
+    
+    for (name, size) in sizes {
+        let m = size;
+        let n = size;
+        let k = size;
+        
+        let a: Vec<f32> = (0..(m * k)).map(|i| (i as f32) * 0.01).collect();
+        let b: Vec<f32> = (0..(k * n)).map(|i| (i as f32) * 0.01).collect();
+        let mut c = vec![0.0f32; m * n];
+        
+        let (kernel_type, duration) = orchestrator.execute_gemm_adaptive(&a, &b, &mut c, m, n, k);
+        
+        let gflops = (2.0 * m as f64 * n as f64 * k as f64) / duration.as_secs_f64() / 1e9;
+        
+        println!("  {} - {:?}", name.cyan(), kernel_type);
+        println!("    Time: {:.2} ms", duration.as_secs_f64() * 1000.0);
+        println!("    Performance: {:.2} GFLOPS", gflops);
+        println!();
     }
     
-    // Always run Rust benchmark
-    use gaba_native_kernels::gemm;
-    let a = vec![1.0f32; m * k];
-    let b = vec![1.0f32; k * n];
-    let mut c = vec![0.0f32; m * n];
-    
-    let start = std::time::Instant::now();
-    gemm(&a, &b, &mut c, m, n, k);
-    let elapsed = start.elapsed();
-    
-    println!("Rust GEMM (multi-threaded): {:.2}ms", elapsed.as_secs_f64() * 1000.0);
-    let gflops = (2.0 * m as f64 * n as f64 * k as f64) / elapsed.as_secs_f64() / 1e9;
-    println!("Performance: {:.2} GFLOPS", gflops);
-    println!("Cores used: {}", num_cpus::get());
-    
+    println!("{}", "Benchmark complete!".green().bold());
     Ok(())
 }
 
 fn print_system_info() {
-    println!("{}", "System Capabilities:".cyan().bold());
+    use gaba_native_kernels::{detect_amx};
+    
+    println!("{}", "GABA Burn Singularity Engine - System Information".cyan().bold());
+    println!("{}", "=".repeat(60).cyan());
     println!();
     
     #[cfg(target_os = "macos")]
     {
-        println!("  {} macOS (Apple Silicon optimized)", "✓".green());
+        println!("  {} macOS (Apple Silicon)", "✓".green());
+        
+        let amx = detect_amx();
+        println!("  {} AMX Coprocessor: {}", 
+            if amx { "✓".green() } else { "✗".red() },
+            if amx { "Available".green() } else { "Not detected".red() }
+        );
+        
+        println!("  {} Accelerate Framework: Available", "✓".green());
         
         #[cfg(feature = "metal")]
-        println!("  {} Metal GPU acceleration available", "✓".green());
+        {
+            let registry = gaba_singularity::KernelRegistry::new();
+            let metal_available = registry.metal_available();
+            println!("  {} Metal GPU: {}", 
+                if metal_available { "✓".green() } else { "✗".red() },
+                if metal_available { "Available".green() } else { "Not available".red() }
+            );
+        }
         
         #[cfg(not(feature = "metal"))]
-        println!("  {} Metal GPU acceleration (disabled)", "✗".red());
+        println!("  {} Metal GPU: Disabled (compile with --features metal)", "✗".red());
+    }
+    
+    #[cfg(not(target_os = "macos"))]
+    {
+        println!("  {} Platform: {}", "i".yellow(), std::env::consts::OS);
+        println!("  {} AMX/Accelerate: macOS only", "✗".red());
+        println!("  {} Metal GPU: macOS only", "✗".red());
     }
     
     #[cfg(feature = "pqc")]
-    println!("  {} Post-quantum cryptography enabled", "✓".green());
+    println!("  {} Post-quantum cryptography", "✓".green());
     
     #[cfg(feature = "zig")]
-    println!("  {} Zig SIMD kernels enabled", "✓".green());
+    println!("  {} Zig SIMD kernels", "✓".green());
     
     println!();
-    println!("CPU cores: {}", num_cpus::get());
-    println!("Features: {}", get_features().join(", "));
+    println!("Hardware:");
+    println!("  CPU cores: {}", num_cpus::get());
+    
+    println!();
+    println!("Available Kernel Types:");
+    let registry = gaba_singularity::KernelRegistry::new();
+    
+    for kernel_type in gaba_singularity::KernelType::ALL {
+        let available = registry.is_available(*kernel_type);
+        println!("  {} {:?}", 
+            if available { "✓".green() } else { "✗".red() },
+            kernel_type
+        );
+    }
+    
+    println!();
+    println!("Optimization Strategy:");
+    println!("  Small (<64x64): RustVectorized (low overhead)");
+    println!("  Medium (64-512): Accelerate/AMX (hardware acceleration)");
+    println!("  Large (>512): MetalGPU (zero-copy unified memory)");
 }
 
+#[allow(dead_code)]
 fn get_features() -> Vec<String> {
     let mut features = vec!["rust".to_string()];
     
@@ -291,4 +354,56 @@ fn get_features() -> Vec<String> {
     features.push("zig".to_string());
     
     features
+}
+
+fn run_singularity_demo(iterations: usize, size: usize) -> Result<()> {
+    use gaba_singularity::AdaptiveKernelOrchestrator;
+    
+    println!("\n{}", "Initializing Singularity Engine...".cyan());
+    let orchestrator = AdaptiveKernelOrchestrator::new().with_learning(true);
+    
+    let a: Vec<f32> = (0..(size * size)).map(|i| (i as f32) * 0.01).collect();
+    let b: Vec<f32> = (0..(size * size)).map(|i| (i as f32) * 0.01).collect();
+    let mut c = vec![0.0f32; size * size];
+    
+    println!("Matrix size: {}x{}x{}", size, size, size);
+    println!("Iterations: {}\n", iterations);
+    
+    println!("{}", "Starting adaptive kernel selection...".yellow());
+    
+    for i in 0..iterations {
+        let (kernel_type, duration) = orchestrator.execute_gemm_adaptive(&a, &b, &mut c, size, size, size);
+        
+        if i % 10 == 0 || i < 5 {
+            println!("  Iteration {}: {:?} - {:.2} µs", 
+                i, 
+                kernel_type, 
+                duration.as_micros()
+            );
+        }
+    }
+    
+    let history = orchestrator.get_performance_history();
+    println!("\n{}", "Demo Complete!".green().bold());
+    println!("Total executions: {}", history.len());
+    
+    let avg_time: f64 = history.iter()
+        .map(|v| v.execution_time.as_secs_f64())
+        .sum::<f64>() / history.len() as f64;
+    
+    println!("Average execution time: {:.2} µs", avg_time * 1_000_000.0);
+    
+    let kernel_counts: std::collections::HashMap<_, usize> = history.iter()
+        .fold(std::collections::HashMap::new(), |mut acc, v| {
+            *acc.entry(format!("{:?}", v.kernel_type)).or_insert(0) += 1;
+            acc
+        });
+    
+    println!("\nKernel selection distribution:");
+    for (kernel, count) in kernel_counts {
+        let percentage = (count as f64 / history.len() as f64) * 100.0;
+        println!("  {}: {} times ({:.1}%)", kernel, count, percentage);
+    }
+    
+    Ok(())
 }

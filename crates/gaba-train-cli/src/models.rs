@@ -119,6 +119,7 @@ impl TrafficModel {
         Ok(())
     }
     
+    #[allow(dead_code)]
     pub fn load(path: &Path) -> anyhow::Result<Self> {
         let mut file = File::open(path)?;
         let mut buffer = Vec::new();
@@ -222,6 +223,7 @@ impl RouteModel {
         Ok(())
     }
     
+    #[allow(dead_code)]
     pub fn load(path: &Path) -> anyhow::Result<Self> {
         let mut file = File::open(path)?;
         let mut buffer = Vec::new();

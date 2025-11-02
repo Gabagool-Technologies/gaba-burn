@@ -7,18 +7,58 @@
 
 pub mod route_optimizer;
 pub mod ml_route_optimizer;
+pub mod accelerate;
+pub mod fusion;
+pub mod quantization;
+pub mod amx_int8;
+pub mod per_channel_quant;
+pub mod conv2d;
+pub mod lstm;
+pub mod batch_norm;
+pub mod dropout;
+pub mod transformer;
+
+#[cfg(feature = "metal")]
+pub mod metal_gpu;
 
 pub use route_optimizer::*;
 pub use ml_route_optimizer::MLRouteOptimizer;
+pub use accelerate::{gemm_accelerate, detect_amx};
+pub use fusion::{Activation, gemm_activation_fused, gemm_relu_fused, gemm_batchnorm_fused};
+pub use quantization::{QuantizationParams, quantize_tensor, dequantize_tensor, gemm_quantized, gemm_i8};
+pub use amx_int8::{gemm_i8_amx, gemm_quantized_amx};
+pub use per_channel_quant::{PerChannelQuantizationParams, quantize_tensor_per_channel, gemm_per_channel_quantized};
+pub use conv2d::{Conv2DParams, conv2d_naive, conv2d_im2col, conv2d_relu_fused, conv2d_accelerate};
+pub use lstm::{LSTMParams, LSTMState, lstm_cell_forward, lstm_forward};
+pub use batch_norm::{BatchNorm1dParams, BatchNorm2dParams, batch_norm_1d_forward, batch_norm_2d_forward, layer_norm_forward};
+pub use dropout::{DropoutParams, dropout_forward, dropout_backward, spatial_dropout_2d_forward, alpha_dropout_forward};
+pub use transformer::{MultiHeadAttentionParams, TransformerBlockParams, multi_head_attention_forward, transformer_block_forward, positional_encoding};
+
+#[cfg(feature = "metal")]
+pub use metal_gpu::MetalGPUExecutor;
 
 #[cfg(feature = "zig")]
 extern "C" {
-    // C ABI: gemm_f32(a_ptr, b_ptr, c_ptr, m, n, k)
-    // All pointers are row-major f32 slices.
+    // Ultra-optimized GEMM with cache blocking and SIMD
+    fn gemm_f32_ultra(a: *const f32, b: *const f32, c: *mut f32, m: usize, n: usize, k: usize);
+    
+    // Original GEMM (fallback)
     fn gemm_f32(a: *const f32, b: *const f32, c: *mut f32, m: usize, n: usize, k: usize);
-    // Quantized u8 GEMM fast path: produce f32 accumulators from u8 inputs.
-    // Rust side will requantize the f32 outputs to u8.
+    
+    // Quantized u8 GEMM fast path
     fn gemm_q8_to_i64(a: *const u8, b: *const u8, c: *mut i64, m: usize, n: usize, k: usize);
+    
+    // ML Kernels
+    fn conv2d_3x3_stride1(input: *const f32, kernel: *const f32, output: *mut f32, 
+                          in_h: usize, in_w: usize, in_c: usize, out_c: usize);
+    fn conv2d_general(input: *const f32, kernel: *const f32, output: *mut f32,
+                      in_h: usize, in_w: usize, in_c: usize,
+                      kernel_h: usize, kernel_w: usize, out_c: usize, stride: usize);
+    fn softmax_f32(input: *const f32, output: *mut f32, size: usize);
+    fn layernorm_f32(input: *const f32, gamma: *const f32, beta: *const f32, 
+                     output: *mut f32, size: usize, eps: f32);
+    fn attention_forward(query: *const f32, key: *const f32, value: *const f32, 
+                        output: *mut f32, seq_len: usize, d_model: usize, num_heads: usize);
 }
 
 /// Pure Rust reference quantized GEMM: dequantize -> gemm_rust -> requantize
@@ -111,7 +151,7 @@ pub fn gemm(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usize) {
 
     #[cfg(feature = "zig")]
     unsafe {
-        gemm_f32(a.as_ptr(), b.as_ptr(), c.as_mut_ptr(), m, n, k);
+        gemm_f32_ultra(a.as_ptr(), b.as_ptr(), c.as_mut_ptr(), m, n, k);
     }
 
     #[cfg(not(feature = "zig"))]
@@ -147,6 +187,155 @@ pub fn gemm_q8(a: &[u8], b: &[u8], c: &mut [u8], m: usize, n: usize, k: usize, s
     #[cfg(not(feature = "zig"))]
     {
         gemm_q8_rust(a, b, c, m, n, k, scale_a, scale_b, scale_out);
+    }
+}
+
+// ML Kernel Wrappers
+
+pub fn conv2d_3x3(input: &[f32], kernel: &[f32], output: &mut [f32], 
+                  in_h: usize, in_w: usize, in_c: usize, out_c: usize) {
+    let out_h = in_h - 2;
+    let out_w = in_w - 2;
+    assert_eq!(input.len(), in_h * in_w * in_c);
+    assert_eq!(kernel.len(), 3 * 3 * in_c * out_c);
+    assert_eq!(output.len(), out_h * out_w * out_c);
+    
+    #[cfg(feature = "zig")]
+    unsafe {
+        conv2d_3x3_stride1(input.as_ptr(), kernel.as_ptr(), output.as_mut_ptr(),
+                          in_h, in_w, in_c, out_c);
+    }
+    
+    #[cfg(not(feature = "zig"))]
+    {
+        // Rust fallback
+        for oh in 0..out_h {
+            for ow in 0..out_w {
+                for oc in 0..out_c {
+                    let mut sum = 0.0;
+                    for kh in 0..3 {
+                        for kw in 0..3 {
+                            for ic in 0..in_c {
+                                let ih = oh + kh;
+                                let iw = ow + kw;
+                                sum += input[ih * in_w * in_c + iw * in_c + ic] *
+                                       kernel[kh * 3 * in_c * out_c + kw * in_c * out_c + ic * out_c + oc];
+                            }
+                        }
+                    }
+                    output[oh * out_w * out_c + ow * out_c + oc] = sum;
+                }
+            }
+        }
+    }
+}
+
+pub fn softmax(input: &[f32], output: &mut [f32]) {
+    assert_eq!(input.len(), output.len());
+    let size = input.len();
+    
+    #[cfg(feature = "zig")]
+    unsafe {
+        softmax_f32(input.as_ptr(), output.as_mut_ptr(), size);
+    }
+    
+    #[cfg(not(feature = "zig"))]
+    {
+        let max_val = input.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+        let mut sum = 0.0;
+        for i in 0..size {
+            output[i] = (input[i] - max_val).exp();
+            sum += output[i];
+        }
+        for i in 0..size {
+            output[i] /= sum;
+        }
+    }
+}
+
+pub fn layernorm(input: &[f32], gamma: &[f32], beta: &[f32], output: &mut [f32], eps: f32) {
+    let size = input.len();
+    assert_eq!(gamma.len(), size);
+    assert_eq!(beta.len(), size);
+    assert_eq!(output.len(), size);
+    
+    #[cfg(feature = "zig")]
+    unsafe {
+        layernorm_f32(input.as_ptr(), gamma.as_ptr(), beta.as_ptr(), 
+                     output.as_mut_ptr(), size, eps);
+    }
+    
+    #[cfg(not(feature = "zig"))]
+    {
+        let mean = input.iter().sum::<f32>() / size as f32;
+        let variance = input.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / size as f32;
+        let std_dev = (variance + eps).sqrt();
+        
+        for i in 0..size {
+            let normalized = (input[i] - mean) / std_dev;
+            output[i] = gamma[i] * normalized + beta[i];
+        }
+    }
+}
+
+pub fn attention(query: &[f32], key: &[f32], value: &[f32], output: &mut [f32],
+                seq_len: usize, d_model: usize, num_heads: usize) {
+    assert_eq!(query.len(), seq_len * d_model);
+    assert_eq!(key.len(), seq_len * d_model);
+    assert_eq!(value.len(), seq_len * d_model);
+    assert_eq!(output.len(), seq_len * d_model);
+    
+    #[cfg(feature = "zig")]
+    unsafe {
+        attention_forward(query.as_ptr(), key.as_ptr(), value.as_ptr(),
+                         output.as_mut_ptr(), seq_len, d_model, num_heads);
+    }
+    
+    #[cfg(not(feature = "zig"))]
+    {
+        // Simple Rust fallback (not optimized)
+        let d_k = d_model / num_heads;
+        let scale = 1.0 / (d_k as f32).sqrt();
+        
+        for h in 0..num_heads {
+            let head_offset = h * d_k;
+            let mut scores = vec![0.0f32; seq_len * seq_len];
+            
+            for i in 0..seq_len {
+                for j in 0..seq_len {
+                    let mut dot = 0.0;
+                    for k in 0..d_k {
+                        dot += query[i * d_model + head_offset + k] *
+                               key[j * d_model + head_offset + k];
+                    }
+                    scores[i * seq_len + j] = dot * scale;
+                }
+            }
+            
+            for i in 0..seq_len {
+                let row_offset = i * seq_len;
+                let max_score = scores[row_offset..row_offset + seq_len]
+                    .iter().copied().fold(f32::NEG_INFINITY, f32::max);
+                let mut sum_exp = 0.0;
+                for j in 0..seq_len {
+                    scores[row_offset + j] = (scores[row_offset + j] - max_score).exp();
+                    sum_exp += scores[row_offset + j];
+                }
+                for j in 0..seq_len {
+                    scores[row_offset + j] /= sum_exp;
+                }
+            }
+            
+            for i in 0..seq_len {
+                for k in 0..d_k {
+                    let mut sum = 0.0;
+                    for j in 0..seq_len {
+                        sum += scores[i * seq_len + j] * value[j * d_model + head_offset + k];
+                    }
+                    output[i * d_model + head_offset + k] = sum;
+                }
+            }
+        }
     }
 }
 
