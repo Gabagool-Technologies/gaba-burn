@@ -46,15 +46,6 @@ Famiglia Routes uses Gaba Burn's Rust+Zig stack to deliver:
 
 This repository is where we iterate quickly on native kernels (Zig), quantized primitives, route optimization algorithms, **and ML model training** so you can ship models that run well everywhere from browsers to clouds.
 
-## Cargo.lock in Version Control
-
-**YES** - Cargo.lock should be committed for:
-- Binary crates (applications like gaba-train-cli)
-- Reproducible builds across team
-- CI/CD consistency
-
-Already in repo and tracked. Do not add to .gitignore.
-
 ## New Features (November 2025)
 
 ### Singularity Engine - Adaptive ML Optimization
