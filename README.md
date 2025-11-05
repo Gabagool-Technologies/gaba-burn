@@ -8,6 +8,8 @@
 
 *built with eternal love and care by Gabagool Technologies*
 
+*Thanks to the **Burn** team for their open-source contributions: https://burn.dev*
+
 ---
 <br />
 
@@ -46,20 +48,46 @@ Famiglia Routes uses Gaba Burn's Rust+Zig stack to deliver:
 
 This repository is where we iterate quickly on native kernels (Zig), quantized primitives, route optimization algorithms, **and ML model training** so you can ship models that run well everywhere from browsers to clouds.
 
-## New Features (November 2025)
+## Key Features
 
-### Singularity Engine - Adaptive ML Optimization
+### Singularity Engine
+Self-improving adaptive kernel orchestrator with Q-learning:
+- 9 kernel types: Rust (fallback/vectorized/parallel), Zig (optimized/ultra), Accelerate (AMX), Metal GPU, fused operations, quantized INT8
+- Automatic kernel selection based on workload characteristics
+- Self-learning system improves from execution history
+- 2-5x training speedup on Apple Silicon
 
-Gaba-Burn includes the **Singularity Engine**, a self-improving adaptive kernel orchestrator:
+### ML Training & Workflows
+- Pure Rust+Zig training CLI with zero Python dependencies
+- Pipeline configuration with JSON save/load
+- Stage-based workflow execution
+- Async orchestration for complex training pipelines
 
-- **Adaptive Selection**: Q-learning chooses optimal kernel per workload
-- **9 Kernel Types**: Rust (fallback/vectorized/parallel), Zig (optimized/ultra), Accelerate (AMX), Metal GPU, Fused operations, Quantized INT8
-- **Kernel Fusion**: GEMM+ReLU, GEMM+BatchNorm, GEMM+Activation operations
-- **Quantization**: INT8 operations with improved throughput
-- **Metal GPU**: Zero-copy unified memory for large matrices (feature-gated)
-- **Self-Learning**: System improves from execution history
+### Memory & Performance Optimization
+- Streaming data loader: 50%+ memory reduction on large datasets
+- Memory-mapped file support for datasets larger than RAM
+- Parallel batch loading with prefetching
+- Automatic checkpoint saving and resume
+- Binary size optimization: 60-70% reduction for edge deployment
 
-Performance: Small matrices use vectorized Rust, medium sizes leverage Accelerate/AMX hardware, large matrices can dispatch to Metal GPU (when enabled).
+### Model Compression
+- INT8/INT4 quantization-aware training
+- Per-channel quantization with 4x-8x model size reduction
+- Magnitude-based pruning with 50-80% weight sparsity
+- Structured pruning for channel removal
+- Maintained accuracy with straight-through estimators
+
+### Profiling & Analysis
+- Kernel timing and memory tracking
+- JSON export for flamegraph analysis
+- <1% profiling overhead
+- Real-time performance metrics
+
+### Embedded & Edge Deployment
+- Cross-compilation for ESP32, STM32, RP2040
+- Firmware flashing with probe-rs
+- Sub-100KB models for MCUs
+- Optimized for edge inference
 
 Benchmarks available in `docs/benchmarks/`.
 
