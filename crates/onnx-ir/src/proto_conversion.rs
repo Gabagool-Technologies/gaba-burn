@@ -29,25 +29,47 @@ impl TryFrom<TensorProto> for TensorData {
     type Error = ParseError;
 
     fn try_from(tensor: TensorProto) -> Result<TensorData, Self::Error> {
-    let shape = convert_shape(tensor.dims().iter().collect());
+        let shape = convert_shape(tensor.dims().iter().collect());
         let elem =
             element_type_from_proto(tensor.data_type()).map_err(ParseError::VariantNotFound)?;
 
         let data = if !tensor.raw_data().is_empty() {
             match elem {
-                ElementType::Float32 => Data::Float32s(cast_vec_with_fallback(tensor.raw_data().to_vec())),
-                ElementType::Float64 => Data::Float64s(cast_vec_with_fallback(tensor.raw_data().to_vec())),
-                ElementType::Float16 => Data::Float16s(cast_vec_with_fallback(tensor.raw_data().to_vec())),
-                ElementType::Int32 => Data::Int32s(cast_vec_with_fallback(tensor.raw_data().to_vec())),
-                ElementType::Int64 => Data::Int64s(cast_vec_with_fallback(tensor.raw_data().to_vec())),
-                ElementType::Uint16 => Data::Uint16s(cast_vec_with_fallback(tensor.raw_data().to_vec())),
+                ElementType::Float32 => {
+                    Data::Float32s(cast_vec_with_fallback(tensor.raw_data().to_vec()))
+                }
+                ElementType::Float64 => {
+                    Data::Float64s(cast_vec_with_fallback(tensor.raw_data().to_vec()))
+                }
+                ElementType::Float16 => {
+                    Data::Float16s(cast_vec_with_fallback(tensor.raw_data().to_vec()))
+                }
+                ElementType::Int32 => {
+                    Data::Int32s(cast_vec_with_fallback(tensor.raw_data().to_vec()))
+                }
+                ElementType::Int64 => {
+                    Data::Int64s(cast_vec_with_fallback(tensor.raw_data().to_vec()))
+                }
+                ElementType::Uint16 => {
+                    Data::Uint16s(cast_vec_with_fallback(tensor.raw_data().to_vec()))
+                }
                 ElementType::Uint8 => Data::Uint8s(tensor.raw_data().to_vec()), // keep bytes
-                ElementType::Int8 => {
-                    Data::Int8s(tensor.raw_data().to_vec().into_iter().map(|b| b as i8).collect())
-                }
-                ElementType::Bool => {
-                    Data::Bools(tensor.raw_data().to_vec().into_iter().map(|b| b != 0).collect())
-                }
+                ElementType::Int8 => Data::Int8s(
+                    tensor
+                        .raw_data()
+                        .to_vec()
+                        .into_iter()
+                        .map(|b| b as i8)
+                        .collect(),
+                ),
+                ElementType::Bool => Data::Bools(
+                    tensor
+                        .raw_data()
+                        .to_vec()
+                        .into_iter()
+                        .map(|b| b != 0)
+                        .collect(),
+                ),
                 ElementType::String => panic!("String initializers unsupported"),
             }
         } else {
@@ -120,10 +142,10 @@ impl TryFrom<TensorShapeProto> for Vec<usize> {
         let mut result = Vec::new();
 
         for dim in shape.dim().iter() {
-                if dim.has_dim_value() {
-                    result.push(dim.dim_value() as usize);
-                }
+            if dim.has_dim_value() {
+                result.push(dim.dim_value() as usize);
             }
+        }
 
         Ok(result)
     }
@@ -148,17 +170,25 @@ impl TryFrom<AttributeProto> for AttributeValue {
             AttributeType::String => AttributeValue::String(to_string(attr.s().to_vec())),
 
             // warning: tensor can be empty TODO: check if it is empty
-            AttributeType::Tensor => AttributeValue::Tensor(TensorData::try_from(attr.t().to_owned())?),
-            AttributeType::Undefined => return Err(ParseError::VariantNotFound("Undefined attribute type".into())),
+            AttributeType::Tensor => {
+                AttributeValue::Tensor(TensorData::try_from(attr.t().to_owned())?)
+            }
+            AttributeType::Undefined => {
+                return Err(ParseError::VariantNotFound(
+                    "Undefined attribute type".into(),
+                ));
+            }
 
             // Graph is not supported for now
             // AttributeType::Graph => AttributeValue::Graph(attr.g),
             AttributeType::Floats => AttributeValue::Float32s(attr.floats().iter().collect()),
             AttributeType::Ints => AttributeValue::Int64s(attr.ints().iter().collect()),
-            AttributeType::Strings => AttributeValue::Strings(to_string_vec(attr.strings().iter().map(|s| s.to_vec()).collect())),
-            AttributeType::Tensors => {
-                AttributeValue::Tensors(convert_vec_tensor_proto(attr.tensors().iter().map(|t| t.to_owned()).collect())?)
-            }
+            AttributeType::Strings => AttributeValue::Strings(to_string_vec(
+                attr.strings().iter().map(|s| s.to_vec()).collect(),
+            )),
+            AttributeType::Tensors => AttributeValue::Tensors(convert_vec_tensor_proto(
+                attr.tensors().iter().map(|t| t.to_owned()).collect(),
+            )?),
             // AttributeType::GRAPHS => AttributeValue::Graphs(attr.graphs),
             // AttributeType::SPARSE_TENSORS => AttributeValue::SparseTensors(attr.sparse_tensors),
             // AttributeType::SPARSE_TENSOR => AttributeValue::SparseTensor(attr.sparse_tensor),
@@ -175,7 +205,10 @@ impl TryFrom<AttributeProto> for AttributeValue {
 pub fn convert_vec_attrs_proto(attrs: Vec<AttributeProto>) -> Attributes {
     let mut result = Attributes::new();
     for attr in attrs {
-        result.insert(attr.name().to_string(), AttributeValue::try_from(attr).unwrap());
+        result.insert(
+            attr.name().to_string(),
+            AttributeValue::try_from(attr).unwrap(),
+        );
     }
     result
 }
@@ -183,9 +216,16 @@ pub fn convert_vec_attrs_proto(attrs: Vec<AttributeProto>) -> Attributes {
 pub fn convert_node_proto(node: &NodeProto, graph_data: &GraphData) -> Node {
     let name = node.name().to_string();
 
-    log::debug!("Converting ONNX node with type {:?}", node.op_type().to_str());
+    log::debug!(
+        "Converting ONNX node with type {:?}",
+        node.op_type().to_str()
+    );
 
-    let inputs = node.input().iter().map(|x| graph_data.init_in(x.to_str().expect("Invalid UTF-8 in node input"))).collect();
+    let inputs = node
+        .input()
+        .iter()
+        .map(|x| graph_data.init_in(x.to_str().expect("Invalid UTF-8 in node input")))
+        .collect();
 
     let outputs = node
         .output()
@@ -195,7 +235,12 @@ pub fn convert_node_proto(node: &NodeProto, graph_data: &GraphData) -> Node {
 
     let attrs = convert_vec_attrs_proto(node.attribute().iter().map(|a| a.to_owned()).collect());
 
-    let node_type = NodeType::from_str(node.op_type().to_str().expect("Invalid UTF-8 in node op_type")).expect("Unknown node type");
+    let node_type = NodeType::from_str(
+        node.op_type()
+            .to_str()
+            .expect("Invalid UTF-8 in node op_type"),
+    )
+    .expect("Unknown node type");
 
     Node {
         node_type,
@@ -230,13 +275,17 @@ impl TryFrom<ValueInfoProto> for Argument {
         }
 
         let tensor_proto = proto_type.tensor_type();
-        let elem_type =
-            element_type_from_proto(tensor_proto.elem_type()).map_err(ParseError::VariantNotFound)?;
+        let elem_type = element_type_from_proto(tensor_proto.elem_type())
+            .map_err(ParseError::VariantNotFound)?;
 
         let ty = if tensor_proto.shape().dim().is_empty() {
             ArgType::Scalar(elem_type)
         } else {
-            let has_unknown_dim = tensor_proto.shape().dim().iter().any(|dim| !dim.has_dim_value());
+            let has_unknown_dim = tensor_proto
+                .shape()
+                .dim()
+                .iter()
+                .any(|dim| !dim.has_dim_value());
 
             let static_shape = if has_unknown_dim {
                 None

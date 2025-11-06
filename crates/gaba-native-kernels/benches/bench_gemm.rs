@@ -2,8 +2,12 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use gaba_native_kernels::{gemm, gemm_rust};
 
 fn bench_size(c: &mut Criterion, m: usize, n: usize, k: usize) {
-    let a: Vec<f32> = (0..(m * k)).map(|i| ((i * 23 + 5) % 97) as f32 * 0.0123).collect();
-    let b: Vec<f32> = (0..(k * n)).map(|i| ((i * 19 + 11) % 89) as f32 * 0.0173).collect();
+    let a: Vec<f32> = (0..(m * k))
+        .map(|i| ((i * 23 + 5) % 97) as f32 * 0.0123)
+        .collect();
+    let b: Vec<f32> = (0..(k * n))
+        .map(|i| ((i * 19 + 11) % 89) as f32 * 0.0173)
+        .collect();
     let mut c_ref = vec![0f32; m * n];
     let mut c_tgt = vec![0f32; m * n];
 

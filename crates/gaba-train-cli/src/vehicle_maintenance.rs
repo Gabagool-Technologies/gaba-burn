@@ -1,9 +1,10 @@
-//! Vehicle Maintenance Prediction
+//! Vehicle maintenance prediction
+
+#![allow(dead_code)]
 //! Predictive maintenance for fleet vehicles
 
 use anyhow::Result;
 
-#[allow(dead_code)]
 pub struct MaintenancePredictor {
     weights: Vec<f32>,
     threshold: f32,
@@ -19,12 +20,13 @@ impl MaintenancePredictor {
 
     pub fn predict_maintenance_risk(&self, vehicle_data: &VehicleData) -> f32 {
         let features = vehicle_data.to_features();
-        
-        let score: f32 = features.iter()
+
+        let score: f32 = features
+            .iter()
             .zip(self.weights.iter())
             .map(|(f, w)| f * w)
             .sum();
-        
+
         1.0 / (1.0 + (-score).exp())
     }
 
@@ -34,31 +36,31 @@ impl MaintenancePredictor {
 
     pub fn train(&mut self, data: &[(VehicleData, bool)], epochs: usize) -> Result<()> {
         let lr = 0.01;
-        
+
         for epoch in 0..epochs {
             let mut correct = 0;
-            
+
             for (vehicle, needs_maintenance) in data {
                 let prediction = self.predict_maintenance_risk(vehicle);
                 let target = if *needs_maintenance { 1.0 } else { 0.0 };
                 let error = prediction - target;
-                
+
                 let features = vehicle.to_features();
                 for (i, feature) in features.iter().enumerate() {
                     self.weights[i] -= lr * error * feature;
                 }
-                
+
                 if (prediction > self.threshold) == *needs_maintenance {
                     correct += 1;
                 }
             }
-            
+
             if epoch % 10 == 0 {
                 let accuracy = correct as f32 / data.len() as f32;
                 println!("Epoch {}: accuracy={:.2}%", epoch, accuracy * 100.0);
             }
         }
-        
+
         Ok(())
     }
 }
@@ -99,17 +101,14 @@ pub fn generate_maintenance_data(samples: usize) -> Vec<(VehicleData, bool)> {
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let mut data = Vec::new();
-    
+
     for _ in 0..samples {
         let mileage = rng.gen_range(10000.0..150000.0);
         let days_since_service = rng.gen_range(0..365);
         let oil_life = rng.gen_range(0.0..100.0);
-        
-        let needs_maintenance = 
-            mileage > 100000.0 ||
-            days_since_service > 180 ||
-            oil_life < 20.0;
-        
+
+        let needs_maintenance = mileage > 100000.0 || days_since_service > 180 || oil_life < 20.0;
+
         let vehicle = VehicleData {
             mileage,
             engine_hours: mileage / 50.0,
@@ -122,10 +121,10 @@ pub fn generate_maintenance_data(samples: usize) -> Vec<(VehicleData, bool)> {
             tire_pressure_avg: rng.gen_range(28.0..35.0),
             battery_voltage: rng.gen_range(12.0..14.5),
         };
-        
+
         data.push((vehicle, needs_maintenance));
     }
-    
+
     data
 }
 
@@ -137,9 +136,9 @@ mod tests {
     fn test_maintenance_predictor() {
         let mut predictor = MaintenancePredictor::new(10);
         let data = generate_maintenance_data(100);
-        
+
         predictor.train(&data, 20).unwrap();
-        
+
         let test_vehicle = VehicleData {
             mileage: 120000.0,
             engine_hours: 2400.0,
@@ -152,7 +151,7 @@ mod tests {
             tire_pressure_avg: 30.0,
             battery_voltage: 13.5,
         };
-        
+
         let risk = predictor.predict_maintenance_risk(&test_vehicle);
         assert!(risk > 0.0 && risk < 1.0);
     }

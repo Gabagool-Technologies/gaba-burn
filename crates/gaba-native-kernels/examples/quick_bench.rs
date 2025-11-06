@@ -1,9 +1,13 @@
-use std::time::Instant;
 use gaba_native_kernels::{gemm, gemm_rust};
+use std::time::Instant;
 
 fn time_gemm_rust(m: usize, n: usize, k: usize) -> f64 {
-    let a: Vec<f32> = (0..(m * k)).map(|i| ((i * 23 + 5) % 97) as f32 * 0.0123).collect();
-    let b: Vec<f32> = (0..(k * n)).map(|i| ((i * 19 + 11) % 89) as f32 * 0.0173).collect();
+    let a: Vec<f32> = (0..(m * k))
+        .map(|i| ((i * 23 + 5) % 97) as f32 * 0.0123)
+        .collect();
+    let b: Vec<f32> = (0..(k * n))
+        .map(|i| ((i * 19 + 11) % 89) as f32 * 0.0173)
+        .collect();
     let mut c = vec![0f32; m * n];
 
     let iters = 3;
@@ -16,8 +20,12 @@ fn time_gemm_rust(m: usize, n: usize, k: usize) -> f64 {
 }
 
 fn time_gemm_native(m: usize, n: usize, k: usize) -> f64 {
-    let a: Vec<f32> = (0..(m * k)).map(|i| ((i * 23 + 5) % 97) as f32 * 0.0123).collect();
-    let b: Vec<f32> = (0..(k * n)).map(|i| ((i * 19 + 11) % 89) as f32 * 0.0173).collect();
+    let a: Vec<f32> = (0..(m * k))
+        .map(|i| ((i * 23 + 5) % 97) as f32 * 0.0123)
+        .collect();
+    let b: Vec<f32> = (0..(k * n))
+        .map(|i| ((i * 19 + 11) % 89) as f32 * 0.0173)
+        .collect();
     let mut c = vec![0f32; m * n];
 
     let iters = 3;

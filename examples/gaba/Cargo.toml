@@ -1,0 +1,22 @@
+[package]
+name = "gaba-examples"
+version = "0.1.0"
+edition = "2021"
+
+[[example]]
+name = "edge_inference"
+path = "edge_inference.rs"
+
+[[example]]
+name = "singularity_demo"
+path = "singularity_demo.rs"
+
+[[example]]
+name = "memory_system"
+path = "memory_system.rs"
+
+[dependencies]
+gaba-train = { path = "../../crates/gaba-train" }
+gaba-singularity = { path = "../../crates/gaba-singularity" }
+gaba-memory = { path = "../../crates/gaba-memory" }
+burn = { version = "0.15", default-features = false, features = ["ndarray"] }

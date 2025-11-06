@@ -8,8 +8,8 @@ pub fn random_update_output(node: &mut Node) {
     let dtype = node
         .attrs
         .get("dtype")
-    .map(|val| DataType::from(val.clone().into_i32()))
-    .unwrap_or(DataType::Float);
+        .map(|val| DataType::from(val.clone().into_i32()))
+        .unwrap_or(DataType::Float);
     log::debug!("Random dtype for {}: {:?}", node.name, dtype);
 
     let shape = node
@@ -53,7 +53,7 @@ mod tests {
 
     #[test]
     fn test_random_normal_float() {
-    let mut node = create_test_node(i32::from(DataType::Float), vec![2, 3, 4]);
+        let mut node = create_test_node(i32::from(DataType::Float), vec![2, 3, 4]);
         random_update_output(&mut node);
 
         match &node.outputs[0].ty {
@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_random_normal_double() {
-    let mut node = create_test_node(i32::from(DataType::Double), vec![5]);
+        let mut node = create_test_node(i32::from(DataType::Double), vec![5]);
         random_update_output(&mut node);
 
         match &node.outputs[0].ty {
@@ -83,7 +83,7 @@ mod tests {
     #[should_panic(expected = "required shape attribute missing")]
     fn test_random_normal_missing_shape() {
         // Create node and then manually remove the shape attribute
-    let mut node = create_test_node(i32::from(DataType::Float), vec![2, 3]);
+        let mut node = create_test_node(i32::from(DataType::Float), vec![2, 3]);
         node.attrs.remove("shape");
         random_update_output(&mut node);
     }
@@ -91,7 +91,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "tensor with type DataType::Int32 not supported for random output")]
     fn test_random_normal_unsupported_type() {
-    let mut node = create_test_node(i32::from(DataType::Int32), vec![2, 3]);
+        let mut node = create_test_node(i32::from(DataType::Int32), vec![2, 3]);
         random_update_output(&mut node);
     }
 }

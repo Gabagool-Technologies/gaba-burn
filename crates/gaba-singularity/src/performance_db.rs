@@ -17,8 +17,9 @@ impl PerformanceVector {
     pub fn distance_to(&self, other: &WorkloadFeatures) -> f64 {
         let self_emb = self.workload_features.to_embedding();
         let other_emb = other.to_embedding();
-        
-        self_emb.iter()
+
+        self_emb
+            .iter()
             .zip(other_emb.iter())
             .map(|(a, b)| (a - b).powi(2))
             .sum::<f64>()
@@ -38,26 +39,28 @@ impl PerformanceVectorDB {
             all_vectors: Arc::new(parking_lot::RwLock::new(Vec::new())),
         }
     }
-    
+
     pub fn insert(&self, vector: PerformanceVector) {
         let sig = vector.workload_features.signature();
-        
-        self.vectors.entry(sig)
+
+        self.vectors
+            .entry(sig)
             .or_insert_with(Vec::new)
             .push(vector.clone());
-        
+
         self.all_vectors.write().push(vector);
     }
-    
+
     pub fn find_similar(&self, features: &WorkloadFeatures, k: usize) -> Vec<PerformanceVector> {
         let sig = features.signature();
-        
+
         if let Some(exact_match) = self.vectors.get(&sig) {
             return exact_match.iter().take(k).cloned().collect();
         }
-        
+
         let all = self.all_vectors.read();
-        let mut scored: Vec<_> = all.iter()
+        let mut scored: Vec<_> = all
+            .iter()
             .map(|v| {
                 let distance = v.distance_to(features);
                 let age_seconds = SystemTime::now()
@@ -69,19 +72,19 @@ impl PerformanceVectorDB {
                 (v.clone(), score)
             })
             .collect();
-        
+
         scored.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
         scored.into_iter().take(k).map(|(v, _)| v).collect()
     }
-    
+
     pub fn len(&self) -> usize {
         self.all_vectors.read().len()
     }
-    
+
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    
+
     pub fn get_all(&self) -> Vec<PerformanceVector> {
         self.all_vectors.read().clone()
     }

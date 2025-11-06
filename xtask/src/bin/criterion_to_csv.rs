@@ -43,13 +43,17 @@ fn extract_mean(path: &Path) -> Option<(String, f64)> {
                     return n.as_f64();
                 }
                 for (_k, v) in map.iter() {
-                    if let Some(f) = walk(v) { return Some(f); }
+                    if let Some(f) = walk(v) {
+                        return Some(f);
+                    }
                 }
                 None
             }
             Value::Array(arr) => {
                 for v in arr.iter() {
-                    if let Some(f) = walk(v) { return Some(f); }
+                    if let Some(f) = walk(v) {
+                        return Some(f);
+                    }
                 }
                 None
             }
@@ -59,7 +63,11 @@ fn extract_mean(path: &Path) -> Option<(String, f64)> {
 
     let mean = walk(&v)?;
     // derive a name from the path
-    let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("unknown").to_string();
+    let name = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_string();
     Some((name, mean))
 }
 

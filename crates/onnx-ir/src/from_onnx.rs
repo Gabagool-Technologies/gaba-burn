@@ -136,7 +136,6 @@ impl GraphData {
         }
     }
 
-
     /// Get the value of an input from the original input name. Used during proto conversion
     pub(crate) fn init_in(&self, proto_str: &str) -> Argument {
         match self.input_name_map.get(proto_str) {
@@ -244,11 +243,7 @@ impl OnnxGraphBuilder {
         let inputs: Vec<_> = graph.input().iter().map(|v| v.to_owned()).collect();
         let outputs: Vec<_> = graph.output().iter().map(|v| v.to_owned()).collect();
         let initializers: Vec<_> = graph.initializer().iter().map(|v| v.to_owned()).collect();
-        let mut graph_data = GraphData::new(
-            &inputs,
-            &outputs,
-            &initializers,
-        );
+        let mut graph_data = GraphData::new(&inputs, &outputs, &initializers);
         for t in &graph.initializer() {
             log::debug!(
                 "init name={:?} dtype={:?} dims={:?} raw_len={} i32={} i64={} f32={} f64={}",
@@ -726,7 +721,10 @@ impl OnnxGraphBuilder {
 
             for input in node.input().iter() {
                 if constant_outputs.contains(&input.to_string()) {
-                    *self.constant_usage_count.entry(input.to_string()).or_insert(0) += 1;
+                    *self
+                        .constant_usage_count
+                        .entry(input.to_string())
+                        .or_insert(0) += 1;
                 }
             }
         }
@@ -1128,16 +1126,17 @@ pub fn parse_onnx(onnx_path: &Path) -> OnnxGraph {
         .unwrap_or_else(|_| panic!("Unable to read file: {}", onnx_path.display()));
     // Parse using view and convert to owned - protobuf v4 uses view-based parsing
     // Cast &[u8] to &ProtoBytes, then to ModelProtoView
-    let proto_bytes: &protobuf::ProtoBytes = unsafe {
-        &*(bytes.as_slice() as *const [u8] as *const protobuf::ProtoBytes)
-    };
-    let model_view: crate::protos::ModelProtoView = unsafe {
-        std::mem::transmute(proto_bytes)
-    };
+    let proto_bytes: &protobuf::ProtoBytes =
+        unsafe { &*(bytes.as_slice() as *const [u8] as *const protobuf::ProtoBytes) };
+    let model_view: crate::protos::ModelProtoView = unsafe { std::mem::transmute(proto_bytes) };
     let onnx_model = model_view.to_owned();
 
     // Check opset versions - must be >= MIN_OPSET_VERSION
-    let opsets: Vec<_> = onnx_model.opset_import().iter().map(|o| o.to_owned()).collect();
+    let opsets: Vec<_> = onnx_model
+        .opset_import()
+        .iter()
+        .map(|o| o.to_owned())
+        .collect();
     if !verify_opsets(&opsets, MIN_OPSET_VERSION) {
         panic!(
             "Unsupported ONNX opset version. This implementation requires opset {MIN_OPSET_VERSION} or higher. \
@@ -1148,7 +1147,12 @@ pub fn parse_onnx(onnx_path: &Path) -> OnnxGraph {
 
     // ONNX nodes must be topologically sorted per spec:
     // https://github.com/onnx/onnx/blob/main/docs/IR.md#graphs
-    let nodes_owned: Vec<_> = onnx_model.graph().node().iter().map(|n| n.to_owned()).collect();
+    let nodes_owned: Vec<_> = onnx_model
+        .graph()
+        .node()
+        .iter()
+        .map(|n| n.to_owned())
+        .collect();
     debug_assert!(
         nodes_owned.is_top_sorted(),
         "Nodes are not topologically sorted"
@@ -1167,12 +1171,12 @@ pub fn parse_onnx(onnx_path: &Path) -> OnnxGraph {
     for opset in &onnx_model.opset_import() {
         log::debug!(
             "Opset domain: {:?}, version: {:?}",
-                if opset.domain().is_empty() {
-                    "<default>"
-                } else {
-                    opset.domain().to_str().unwrap_or("<invalid>")
-                },
-                opset.version()
+            if opset.domain().is_empty() {
+                "<default>"
+            } else {
+                opset.domain().to_str().unwrap_or("<invalid>")
+            },
+            opset.version()
         );
     }
 

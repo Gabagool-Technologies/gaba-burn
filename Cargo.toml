@@ -193,6 +193,20 @@ tracel-xtask = { version = "=2.1.11" }
 [profile.dev]
 debug = 1 # Speed up compilation time and not necessary.
 
+[profile.release]
+lto = "thin"
+codegen-units = 16
+opt-level = 3
+strip = false
+
+[profile.release-small]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+opt-level = "z"
+strip = true
+panic = "abort"
+
 ## Workspace-level feature flags (documentation only).
 ## A virtual manifest (workspace Cargo.toml) cannot declare actual Cargo [features].
 ## Use this metadata as a canonical source-of-truth for CI matrices and for adding

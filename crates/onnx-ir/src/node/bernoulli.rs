@@ -17,7 +17,7 @@ pub fn bernoulli_update_output(node: &mut Node) {
     let dtype = node
         .attrs
         .get("dtype")
-    .map(|val| DataType::from(val.clone().into_i32()));
+        .map(|val| DataType::from(val.clone().into_i32()));
 
     log::debug!("Bernoulli: dtype for {}: {:?}", node.name, dtype);
 

@@ -1,0 +1,27 @@
+[package]
+name = "gaba-memory"
+version = "0.1.0"
+edition = "2021"
+authors = ["Gabagool Technologies"]
+description = "AGI-ready context and memory system for edge ML"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+ndarray = "0.15"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+petgraph = "0.6"
+rayon = "1.7"
+parking_lot = "0.12"
+thiserror = "1.0"
+bincode = "1.3"
+chrono = "0.4"
+rand = "0.8"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "memory_bench"
+harness = false

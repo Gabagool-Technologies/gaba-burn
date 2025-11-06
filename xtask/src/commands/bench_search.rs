@@ -1,7 +1,7 @@
-use std::time::Instant;
 use gaba_burn_vector::{CpuSearchEngine, VectorMetadata};
 use rand::Rng;
 use rand::rng;
+use std::time::Instant;
 
 #[allow(dead_code)]
 fn random_vector(dim: usize) -> Vec<f32> {
@@ -20,7 +20,11 @@ pub fn run_bench_search() {
     for i in 0..n {
         let id = format!("doc-{}", i);
         let vec = random_vector(dim);
-        let meta = VectorMetadata { title: id.clone(), source_path: id.clone(), content: format!("content {}", i) };
+        let meta = VectorMetadata {
+            title: id.clone(),
+            source_path: id.clone(),
+            content: format!("content {}", i),
+        };
         vectors.push((id, vec, meta));
     }
 

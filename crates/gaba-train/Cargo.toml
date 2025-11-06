@@ -13,12 +13,14 @@ burn = { path = "../burn", features = ["train", "ndarray"], default-features = f
 
 # Native kernels
 gaba-native-kernels = { path = "../gaba-native-kernels" }
+gaba-singularity = { path = "../gaba-singularity" }
 
 # Data handling
-ndarray = "0.15"
+ndarray = "0.16"
 csv = "1.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+memmap2 = "0.9"
 
 # Training utilities
 rand = "0.8"
@@ -28,10 +30,25 @@ thiserror = "1.0"
 
 # Parallel processing
 rayon = "1.10"
+num_cpus = "1.16"
 
 # Progress tracking
 indicatif = "0.17"
 
+# Async runtime
+tokio = { version = "1.48", features = ["full"] }
+
+# Cryptography
+blake3 = "1.5"
+
+[dependencies.bincode]
+version = "1.3"
+
 [dev-dependencies]
 approx = "0.5"
 criterion = "0.5"
+tempfile = "3.20"
+
+[[bench]]
+name = "training_benchmark"
+harness = false

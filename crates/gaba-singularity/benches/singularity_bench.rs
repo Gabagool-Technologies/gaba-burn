@@ -1,16 +1,16 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use gaba_singularity::AdaptiveKernelOrchestrator;
 
 fn bench_adaptive_gemm(c: &mut Criterion) {
     let orchestrator = AdaptiveKernelOrchestrator::new().with_learning(true);
-    
+
     let sizes = vec![(64, 64, 64), (128, 128, 128), (256, 256, 256)];
-    
+
     for (m, n, k) in sizes {
         let a: Vec<f32> = (0..(m * k)).map(|i| (i as f32) * 0.01).collect();
         let b: Vec<f32> = (0..(k * n)).map(|i| (i as f32) * 0.01).collect();
         let mut result = vec![0.0f32; m * n];
-        
+
         c.bench_with_input(
             BenchmarkId::new("adaptive_gemm", format!("{}x{}x{}", m, n, k)),
             &(m, n, k),
@@ -20,7 +20,9 @@ fn bench_adaptive_gemm(c: &mut Criterion) {
                         black_box(&a),
                         black_box(&b),
                         black_box(&mut result),
-                        m, n, k
+                        m,
+                        n,
+                        k,
                     );
                 });
             },
@@ -36,7 +38,7 @@ fn bench_learning_convergence(c: &mut Criterion) {
     let a: Vec<f32> = (0..(m * k)).map(|i| (i as f32) * 0.01).collect();
     let b: Vec<f32> = (0..(k * n)).map(|i| (i as f32) * 0.01).collect();
     let mut result = vec![0.0f32; m * n];
-    
+
     c.bench_function("learning_convergence_256x256", |bencher| {
         bencher.iter(|| {
             for _ in 0..10 {
@@ -44,7 +46,9 @@ fn bench_learning_convergence(c: &mut Criterion) {
                     black_box(&a),
                     black_box(&b),
                     black_box(&mut result),
-                    m, n, k
+                    m,
+                    n,
+                    k,
                 );
             }
         });
@@ -58,7 +62,7 @@ fn bench_cold_start(c: &mut Criterion) {
     let a: Vec<f32> = (0..(m * k)).map(|i| (i as f32) * 0.01).collect();
     let b: Vec<f32> = (0..(k * n)).map(|i| (i as f32) * 0.01).collect();
     let mut result = vec![0.0f32; m * n];
-    
+
     c.bench_function("cold_start_128x128", |bencher| {
         bencher.iter(|| {
             let orchestrator = AdaptiveKernelOrchestrator::new();
@@ -66,11 +70,18 @@ fn bench_cold_start(c: &mut Criterion) {
                 black_box(&a),
                 black_box(&b),
                 black_box(&mut result),
-                m, n, k
+                m,
+                n,
+                k,
             );
         });
     });
 }
 
-criterion_group!(benches, bench_adaptive_gemm, bench_learning_convergence, bench_cold_start);
+criterion_group!(
+    benches,
+    bench_adaptive_gemm,
+    bench_learning_convergence,
+    bench_cold_start
+);
 criterion_main!(benches);

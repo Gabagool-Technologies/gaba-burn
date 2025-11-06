@@ -5,34 +5,47 @@
 //!
 //! Also includes route optimization kernels for Famiglia Routes application.
 
-pub mod route_optimizer;
-pub mod ml_route_optimizer;
 pub mod accelerate;
-pub mod fusion;
-pub mod quantization;
 pub mod amx_int8;
-pub mod per_channel_quant;
-pub mod conv2d;
-pub mod lstm;
 pub mod batch_norm;
+pub mod conv2d;
 pub mod dropout;
+pub mod fusion;
+pub mod lstm;
+pub mod ml_route_optimizer;
+pub mod per_channel_quant;
+pub mod quantization;
+pub mod route_optimizer;
 pub mod transformer;
 
 #[cfg(feature = "metal")]
 pub mod metal_gpu;
 
-pub use route_optimizer::*;
-pub use ml_route_optimizer::MLRouteOptimizer;
-pub use accelerate::{gemm_accelerate, detect_amx};
-pub use fusion::{Activation, gemm_activation_fused, gemm_relu_fused, gemm_batchnorm_fused};
-pub use quantization::{QuantizationParams, quantize_tensor, dequantize_tensor, gemm_quantized, gemm_i8};
+pub use accelerate::{detect_amx, gemm_accelerate};
 pub use amx_int8::{gemm_i8_amx, gemm_quantized_amx};
-pub use per_channel_quant::{PerChannelQuantizationParams, quantize_tensor_per_channel, gemm_per_channel_quantized};
-pub use conv2d::{Conv2DParams, conv2d_naive, conv2d_im2col, conv2d_relu_fused, conv2d_accelerate};
-pub use lstm::{LSTMParams, LSTMState, lstm_cell_forward, lstm_forward};
-pub use batch_norm::{BatchNorm1dParams, BatchNorm2dParams, batch_norm_1d_forward, batch_norm_2d_forward, layer_norm_forward};
-pub use dropout::{DropoutParams, dropout_forward, dropout_backward, spatial_dropout_2d_forward, alpha_dropout_forward};
-pub use transformer::{MultiHeadAttentionParams, TransformerBlockParams, multi_head_attention_forward, transformer_block_forward, positional_encoding};
+pub use batch_norm::{
+    batch_norm_1d_forward, batch_norm_2d_forward, layer_norm_forward, BatchNorm1dParams,
+    BatchNorm2dParams,
+};
+pub use conv2d::{conv2d_accelerate, conv2d_im2col, conv2d_naive, conv2d_relu_fused, Conv2DParams};
+pub use dropout::{
+    alpha_dropout_forward, dropout_backward, dropout_forward, spatial_dropout_2d_forward,
+    DropoutParams,
+};
+pub use fusion::{gemm_activation_fused, gemm_batchnorm_fused, gemm_relu_fused, Activation};
+pub use lstm::{lstm_cell_forward, lstm_forward, LSTMParams, LSTMState};
+pub use ml_route_optimizer::MLRouteOptimizer;
+pub use per_channel_quant::{
+    gemm_per_channel_quantized, quantize_tensor_per_channel, PerChannelQuantizationParams,
+};
+pub use quantization::{
+    dequantize_tensor, gemm_i8, gemm_quantized, quantize_tensor, QuantizationParams,
+};
+pub use route_optimizer::*;
+pub use transformer::{
+    multi_head_attention_forward, positional_encoding, transformer_block_forward,
+    MultiHeadAttentionParams, TransformerBlockParams,
+};
 
 #[cfg(feature = "metal")]
 pub use metal_gpu::MetalGPUExecutor;
@@ -41,28 +54,67 @@ pub use metal_gpu::MetalGPUExecutor;
 extern "C" {
     // Ultra-optimized GEMM with cache blocking and SIMD
     fn gemm_f32_ultra(a: *const f32, b: *const f32, c: *mut f32, m: usize, n: usize, k: usize);
-    
+
     // Original GEMM (fallback)
     fn gemm_f32(a: *const f32, b: *const f32, c: *mut f32, m: usize, n: usize, k: usize);
-    
+
     // Quantized u8 GEMM fast path
     fn gemm_q8_to_i64(a: *const u8, b: *const u8, c: *mut i64, m: usize, n: usize, k: usize);
-    
+
     // ML Kernels
-    fn conv2d_3x3_stride1(input: *const f32, kernel: *const f32, output: *mut f32, 
-                          in_h: usize, in_w: usize, in_c: usize, out_c: usize);
-    fn conv2d_general(input: *const f32, kernel: *const f32, output: *mut f32,
-                      in_h: usize, in_w: usize, in_c: usize,
-                      kernel_h: usize, kernel_w: usize, out_c: usize, stride: usize);
+    fn conv2d_3x3_stride1(
+        input: *const f32,
+        kernel: *const f32,
+        output: *mut f32,
+        in_h: usize,
+        in_w: usize,
+        in_c: usize,
+        out_c: usize,
+    );
+    fn conv2d_general(
+        input: *const f32,
+        kernel: *const f32,
+        output: *mut f32,
+        in_h: usize,
+        in_w: usize,
+        in_c: usize,
+        kernel_h: usize,
+        kernel_w: usize,
+        out_c: usize,
+        stride: usize,
+    );
     fn softmax_f32(input: *const f32, output: *mut f32, size: usize);
-    fn layernorm_f32(input: *const f32, gamma: *const f32, beta: *const f32, 
-                     output: *mut f32, size: usize, eps: f32);
-    fn attention_forward(query: *const f32, key: *const f32, value: *const f32, 
-                        output: *mut f32, seq_len: usize, d_model: usize, num_heads: usize);
+    fn layernorm_f32(
+        input: *const f32,
+        gamma: *const f32,
+        beta: *const f32,
+        output: *mut f32,
+        size: usize,
+        eps: f32,
+    );
+    fn attention_forward(
+        query: *const f32,
+        key: *const f32,
+        value: *const f32,
+        output: *mut f32,
+        seq_len: usize,
+        d_model: usize,
+        num_heads: usize,
+    );
 }
 
 /// Pure Rust reference quantized GEMM: dequantize -> gemm_rust -> requantize
-pub fn gemm_q8_rust(a: &[u8], b: &[u8], c: &mut [u8], m: usize, n: usize, k: usize, scale_a: f32, scale_b: f32, scale_out: f32) {
+pub fn gemm_q8_rust(
+    a: &[u8],
+    b: &[u8],
+    c: &mut [u8],
+    m: usize,
+    n: usize,
+    k: usize,
+    scale_a: f32,
+    scale_b: f32,
+    scale_out: f32,
+) {
     assert_eq!(a.len(), m * k);
     assert_eq!(b.len(), k * n);
     assert_eq!(c.len(), m * n);
@@ -83,7 +135,13 @@ pub fn gemm_q8_rust(a: &[u8], b: &[u8], c: &mut [u8], m: usize, n: usize, k: usi
 
     for i in 0..(m * n) {
         let q = (c_f[i] / scale_out).round();
-        let q = if q < 0.0 { 0.0 } else if q > 255.0 { 255.0 } else { q };
+        let q = if q < 0.0 {
+            0.0
+        } else if q > 255.0 {
+            255.0
+        } else {
+            q
+        };
         c[i] = q as u8;
     }
 }
@@ -109,7 +167,7 @@ pub fn gemm_rust(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usi
 pub fn gemm_rust_parallel(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usize) {
     use rayon::prelude::*;
     use std::sync::Mutex;
-    
+
     assert_eq!(a.len(), m * k);
     assert_eq!(b.len(), k * n);
     assert_eq!(c.len(), m * n);
@@ -117,14 +175,14 @@ pub fn gemm_rust_parallel(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usiz
     let c_mutex = Mutex::new(c);
     let block_size = 64;
     let num_blocks = (m + block_size - 1) / block_size;
-    
+
     (0..num_blocks).into_par_iter().for_each(|block_idx| {
         let i_start = block_idx * block_size;
         let i_end = (i_start + block_size).min(m);
-        
+
         let mut local_results = vec![(0usize, 0usize, 0f32); (i_end - i_start) * n];
         let mut idx = 0;
-        
+
         for i in i_start..i_end {
             for j in 0..n {
                 let mut sum = 0f32;
@@ -135,7 +193,7 @@ pub fn gemm_rust_parallel(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usiz
                 idx += 1;
             }
         }
-        
+
         let mut c_guard = c_mutex.lock().unwrap();
         for (i, j, val) in local_results {
             c_guard[i * n + j] = val;
@@ -165,7 +223,17 @@ pub fn gemm(a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usize) {
 }
 
 /// Call quantized kernel when available; otherwise fallback to Rust dequantize path.
-pub fn gemm_q8(a: &[u8], b: &[u8], c: &mut [u8], m: usize, n: usize, k: usize, scale_a: f32, scale_b: f32, scale_out: f32) {
+pub fn gemm_q8(
+    a: &[u8],
+    b: &[u8],
+    c: &mut [u8],
+    m: usize,
+    n: usize,
+    k: usize,
+    scale_a: f32,
+    scale_b: f32,
+    scale_out: f32,
+) {
     assert_eq!(a.len(), m * k);
     assert_eq!(b.len(), k * n);
     assert_eq!(c.len(), m * n);
@@ -179,7 +247,13 @@ pub fn gemm_q8(a: &[u8], b: &[u8], c: &mut [u8], m: usize, n: usize, k: usize, s
         for i in 0..(m * n) {
             let sumf = (tmp[i] as f32) * scale;
             let q = (sumf / scale_out).round();
-            let q = if q < 0.0 { 0.0 } else if q > 255.0 { 255.0 } else { q };
+            let q = if q < 0.0 {
+                0.0
+            } else if q > 255.0 {
+                255.0
+            } else {
+                q
+            };
             c[i] = q as u8;
         }
     }
@@ -192,20 +266,34 @@ pub fn gemm_q8(a: &[u8], b: &[u8], c: &mut [u8], m: usize, n: usize, k: usize, s
 
 // ML Kernel Wrappers
 
-pub fn conv2d_3x3(input: &[f32], kernel: &[f32], output: &mut [f32], 
-                  in_h: usize, in_w: usize, in_c: usize, out_c: usize) {
+pub fn conv2d_3x3(
+    input: &[f32],
+    kernel: &[f32],
+    output: &mut [f32],
+    in_h: usize,
+    in_w: usize,
+    in_c: usize,
+    out_c: usize,
+) {
     let out_h = in_h - 2;
     let out_w = in_w - 2;
     assert_eq!(input.len(), in_h * in_w * in_c);
     assert_eq!(kernel.len(), 3 * 3 * in_c * out_c);
     assert_eq!(output.len(), out_h * out_w * out_c);
-    
+
     #[cfg(feature = "zig")]
     unsafe {
-        conv2d_3x3_stride1(input.as_ptr(), kernel.as_ptr(), output.as_mut_ptr(),
-                          in_h, in_w, in_c, out_c);
+        conv2d_3x3_stride1(
+            input.as_ptr(),
+            kernel.as_ptr(),
+            output.as_mut_ptr(),
+            in_h,
+            in_w,
+            in_c,
+            out_c,
+        );
     }
-    
+
     #[cfg(not(feature = "zig"))]
     {
         // Rust fallback
@@ -218,8 +306,11 @@ pub fn conv2d_3x3(input: &[f32], kernel: &[f32], output: &mut [f32],
                             for ic in 0..in_c {
                                 let ih = oh + kh;
                                 let iw = ow + kw;
-                                sum += input[ih * in_w * in_c + iw * in_c + ic] *
-                                       kernel[kh * 3 * in_c * out_c + kw * in_c * out_c + ic * out_c + oc];
+                                sum += input[ih * in_w * in_c + iw * in_c + ic]
+                                    * kernel[kh * 3 * in_c * out_c
+                                        + kw * in_c * out_c
+                                        + ic * out_c
+                                        + oc];
                             }
                         }
                     }
@@ -233,12 +324,12 @@ pub fn conv2d_3x3(input: &[f32], kernel: &[f32], output: &mut [f32],
 pub fn softmax(input: &[f32], output: &mut [f32]) {
     assert_eq!(input.len(), output.len());
     let size = input.len();
-    
+
     #[cfg(feature = "zig")]
     unsafe {
         softmax_f32(input.as_ptr(), output.as_mut_ptr(), size);
     }
-    
+
     #[cfg(not(feature = "zig"))]
     {
         let max_val = input.iter().copied().fold(f32::NEG_INFINITY, f32::max);
@@ -258,19 +349,25 @@ pub fn layernorm(input: &[f32], gamma: &[f32], beta: &[f32], output: &mut [f32],
     assert_eq!(gamma.len(), size);
     assert_eq!(beta.len(), size);
     assert_eq!(output.len(), size);
-    
+
     #[cfg(feature = "zig")]
     unsafe {
-        layernorm_f32(input.as_ptr(), gamma.as_ptr(), beta.as_ptr(), 
-                     output.as_mut_ptr(), size, eps);
+        layernorm_f32(
+            input.as_ptr(),
+            gamma.as_ptr(),
+            beta.as_ptr(),
+            output.as_mut_ptr(),
+            size,
+            eps,
+        );
     }
-    
+
     #[cfg(not(feature = "zig"))]
     {
         let mean = input.iter().sum::<f32>() / size as f32;
         let variance = input.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / size as f32;
         let std_dev = (variance + eps).sqrt();
-        
+
         for i in 0..size {
             let normalized = (input[i] - mean) / std_dev;
             output[i] = gamma[i] * normalized + beta[i];
@@ -278,44 +375,60 @@ pub fn layernorm(input: &[f32], gamma: &[f32], beta: &[f32], output: &mut [f32],
     }
 }
 
-pub fn attention(query: &[f32], key: &[f32], value: &[f32], output: &mut [f32],
-                seq_len: usize, d_model: usize, num_heads: usize) {
+pub fn attention(
+    query: &[f32],
+    key: &[f32],
+    value: &[f32],
+    output: &mut [f32],
+    seq_len: usize,
+    d_model: usize,
+    num_heads: usize,
+) {
     assert_eq!(query.len(), seq_len * d_model);
     assert_eq!(key.len(), seq_len * d_model);
     assert_eq!(value.len(), seq_len * d_model);
     assert_eq!(output.len(), seq_len * d_model);
-    
+
     #[cfg(feature = "zig")]
     unsafe {
-        attention_forward(query.as_ptr(), key.as_ptr(), value.as_ptr(),
-                         output.as_mut_ptr(), seq_len, d_model, num_heads);
+        attention_forward(
+            query.as_ptr(),
+            key.as_ptr(),
+            value.as_ptr(),
+            output.as_mut_ptr(),
+            seq_len,
+            d_model,
+            num_heads,
+        );
     }
-    
+
     #[cfg(not(feature = "zig"))]
     {
         // Simple Rust fallback (not optimized)
         let d_k = d_model / num_heads;
         let scale = 1.0 / (d_k as f32).sqrt();
-        
+
         for h in 0..num_heads {
             let head_offset = h * d_k;
             let mut scores = vec![0.0f32; seq_len * seq_len];
-            
+
             for i in 0..seq_len {
                 for j in 0..seq_len {
                     let mut dot = 0.0;
                     for k in 0..d_k {
-                        dot += query[i * d_model + head_offset + k] *
-                               key[j * d_model + head_offset + k];
+                        dot += query[i * d_model + head_offset + k]
+                            * key[j * d_model + head_offset + k];
                     }
                     scores[i * seq_len + j] = dot * scale;
                 }
             }
-            
+
             for i in 0..seq_len {
                 let row_offset = i * seq_len;
                 let max_score = scores[row_offset..row_offset + seq_len]
-                    .iter().copied().fold(f32::NEG_INFINITY, f32::max);
+                    .iter()
+                    .copied()
+                    .fold(f32::NEG_INFINITY, f32::max);
                 let mut sum_exp = 0.0;
                 for j in 0..seq_len {
                     scores[row_offset + j] = (scores[row_offset + j] - max_score).exp();
@@ -325,7 +438,7 @@ pub fn attention(query: &[f32], key: &[f32], value: &[f32], output: &mut [f32],
                     scores[row_offset + j] /= sum_exp;
                 }
             }
-            
+
             for i in 0..seq_len {
                 for k in 0..d_k {
                     let mut sum = 0.0;

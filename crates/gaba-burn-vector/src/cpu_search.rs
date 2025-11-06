@@ -8,11 +8,15 @@ pub struct CpuSearchEngine {
 
 impl CpuSearchEngine {
     pub fn new() -> Self {
-        Self { min_score_threshold: 0.1 }
+        Self {
+            min_score_threshold: 0.1,
+        }
     }
 
     pub fn with_threshold(threshold: f32) -> Self {
-        Self { min_score_threshold: threshold }
+        Self {
+            min_score_threshold: threshold,
+        }
     }
 
     /// Parallel search over vectors (id, vector, metadata)
@@ -27,14 +31,22 @@ impl CpuSearchEngine {
             .filter_map(|(id, vec, metadata)| {
                 let score = cosine_similarity(query_vector, vec);
                 if score >= self.min_score_threshold {
-                    Some(SearchResult { id: id.clone(), score, metadata: metadata.clone() })
+                    Some(SearchResult {
+                        id: id.clone(),
+                        score,
+                        metadata: metadata.clone(),
+                    })
                 } else {
                     None
                 }
             })
             .collect();
 
-        results.par_sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.par_sort_unstable_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(top_k);
         results
     }
@@ -59,7 +71,11 @@ impl CpuSearchEngine {
             result.score = (result.score + boost).min(1.0);
         }
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
     }
 }
 
@@ -71,5 +87,9 @@ fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
     let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
     let norm_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
-    if norm_a == 0.0 || norm_b == 0.0 { 0.0 } else { dot / (norm_a * norm_b) }
+    if norm_a == 0.0 || norm_b == 0.0 {
+        0.0
+    } else {
+        dot / (norm_a * norm_b)
+    }
 }

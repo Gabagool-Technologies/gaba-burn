@@ -5,9 +5,9 @@ use axum::{
     routing::post,
     Router,
 };
+use gaba_native_kernels::route_optimizer::{build_distance_matrix, solve_tsp_optimized, GeoPoint};
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use gaba_native_kernels::route_optimizer::{GeoPoint, build_distance_matrix, solve_tsp_optimized};
 
 #[derive(Debug, Deserialize)]
 struct OptimizeRequest {
@@ -53,10 +53,8 @@ async fn optimize_route(Json(payload): Json<OptimizeRequest>) -> impl IntoRespon
     let (route, distance) = solve_tsp_optimized(&matrix, n, 0, max_iterations);
 
     // Calculate naive route distance for comparison
-    let naive_distance: f64 = (0..n - 1)
-        .map(|i| matrix[i * n + (i + 1)])
-        .sum();
-    
+    let naive_distance: f64 = (0..n - 1).map(|i| matrix[i * n + (i + 1)]).sum();
+
     let improvement = if naive_distance > 0.0 {
         ((naive_distance - distance) / naive_distance) * 100.0
     } else {
@@ -70,10 +68,10 @@ async fn optimize_route(Json(payload): Json<OptimizeRequest>) -> impl IntoRespon
 
     // Convert km to miles
     let distance_miles = adjusted_distance * 0.621371;
-    
+
     // Calculate estimated time (assuming 25 mph average with stops)
     let estimated_time = distance_miles / 25.0;
-    
+
     // Calculate fuel savings
     const MPG: f64 = 6.0;
     const FUEL_PRICE: f64 = 3.5;
@@ -105,7 +103,7 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
         .await
         .unwrap();
-    
+
     println!("Famiglia Routes API running on http://127.0.0.1:8080");
     axum::serve(listener, app).await.unwrap();
 }

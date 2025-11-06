@@ -1,16 +1,16 @@
 //! ML inference for route optimization
-//! 
+//!
 //! Provides ONNX-based traffic prediction and route time estimation.
 
-use chrono::{DateTime, Utc, Datelike, Timelike};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 
 pub mod error;
-pub mod traffic;
 pub mod route_time;
+pub mod traffic;
 
 pub use error::{InferenceError, Result};
-pub use traffic::TrafficPredictor;
 pub use route_time::RouteTimePredictor;
+pub use traffic::TrafficPredictor;
 
 /// Feature vector for traffic prediction
 #[derive(Debug, Clone)]
@@ -117,7 +117,7 @@ pub fn encode_cyclical(value: f32, max_value: f32) -> (f32, f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_season_from_month() {
         assert_eq!(Season::from_month(1), Season::Winter);
@@ -125,13 +125,13 @@ mod tests {
         assert_eq!(Season::from_month(7), Season::Summer);
         assert_eq!(Season::from_month(10), Season::Fall);
     }
-    
+
     #[test]
     fn test_cyclical_encoding() {
         let (sin, cos) = encode_cyclical(0.0, 24.0);
         assert!((sin - 0.0).abs() < 0.001);
         assert!((cos - 1.0).abs() < 0.001);
-        
+
         let (sin, cos) = encode_cyclical(6.0, 24.0);
         assert!((sin - 1.0).abs() < 0.001);
         assert!((cos - 0.0).abs() < 0.001);

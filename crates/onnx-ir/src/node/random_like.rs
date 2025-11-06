@@ -8,8 +8,8 @@ pub fn random_like_update_output(node: &mut Node) {
     let dtype = node
         .attrs
         .get("dtype")
-    .map(|val| DataType::from(val.clone().into_i32()))
-    .unwrap_or(DataType::Float);
+        .map(|val| DataType::from(val.clone().into_i32()))
+        .unwrap_or(DataType::Float);
     log::debug!("RandomLike dtype for {}: {:?}", node.name, dtype);
 
     let elem_type = match dtype {
@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn test_random_like_float() {
-    let mut node = create_test_node(i32::from(DataType::Float), 3, None);
+        let mut node = create_test_node(i32::from(DataType::Float), 3, None);
         random_like_update_output(&mut node);
 
         match &node.outputs[0].ty {
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_random_like_double() {
-    let mut node = create_test_node(i32::from(DataType::Double), 2, Some(vec![5, 10]));
+        let mut node = create_test_node(i32::from(DataType::Double), 2, Some(vec![5, 10]));
         random_like_update_output(&mut node);
 
         match &node.outputs[0].ty {

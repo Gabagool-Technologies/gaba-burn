@@ -25,7 +25,7 @@ mod platform_stub {
 }
 
 #[cfg(target_os = "macos")]
-pub use platform_stub::Rocm as Rocm;
+pub use platform_stub::Rocm;
 
 #[cfg(not(target_os = "macos"))]
 extern crate alloc;

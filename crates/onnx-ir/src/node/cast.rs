@@ -113,7 +113,7 @@ mod tests {
         let config = cast_config(&node);
         assert_eq!(config.to, ElementType::Int32);
 
-    let node = create_test_node(2, i32::from(DataType::Float) as i64);
+        let node = create_test_node(2, i32::from(DataType::Float) as i64);
         let config = cast_config(&node);
         assert_eq!(config.to, ElementType::Float32);
 

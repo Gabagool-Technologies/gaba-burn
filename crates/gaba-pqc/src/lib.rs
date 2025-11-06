@@ -10,7 +10,7 @@ pub mod seal;
 pub mod metal_accel;
 
 pub use error::{PqcError, PqcResult};
-pub use seal::{Seal, create_seal, verify_seal};
+pub use seal::{create_seal, verify_seal, Seal};
 
 /// Encrypt training checkpoint with PQC
 pub async fn encrypt_checkpoint(data: &[u8]) -> PqcResult<Vec<u8>> {

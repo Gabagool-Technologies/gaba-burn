@@ -1,0 +1,38 @@
+[package]
+name = "gaba-serve"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+burn = { path = "../burn", default-features = false }
+gaba-native-kernels = { path = "../gaba-native-kernels" }
+gaba-train = { path = "../gaba-train" }
+
+# Async runtime
+tokio = { version = "1.41", features = ["full"] }
+async-trait = "0.1"
+
+# HTTP server
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Data structures
+ndarray = "0.16"
+crossbeam = "0.8"
+
+# Utilities
+anyhow = "1.0"
+thiserror = "1.0"
+log = "0.4"
+env_logger = "0.11"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Metrics
+prometheus = "0.13"
+
+[dev-dependencies]
+approx = "0.5"
+criterion = "0.5"
+tempfile = "3.20"

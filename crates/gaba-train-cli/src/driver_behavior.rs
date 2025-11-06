@@ -1,6 +1,7 @@
-//! Driver Behavior Analysis
+//! Driver behavior analysis
 
-#[allow(dead_code)]
+#![allow(dead_code)]
+
 pub struct DriverBehaviorAnalyzer {
     weights: Vec<f32>,
 }
@@ -14,7 +15,11 @@ impl DriverBehaviorAnalyzer {
 
     pub fn analyze(&self, behavior: &DriverBehavior) -> f32 {
         let features = behavior.to_features();
-        features.iter().zip(self.weights.iter()).map(|(f, w)| f * w).sum::<f32>()
+        features
+            .iter()
+            .zip(self.weights.iter())
+            .map(|(f, w)| f * w)
+            .sum::<f32>()
     }
 }
 
@@ -33,9 +38,14 @@ pub struct DriverBehavior {
 impl DriverBehavior {
     pub fn to_features(&self) -> Vec<f32> {
         vec![
-            self.harsh_braking, self.rapid_accel, self.speeding as f32,
-            self.smooth_score, self.fuel_eff, self.idle_ratio,
-            self.on_time_rate, self.accidents as f32,
+            self.harsh_braking,
+            self.rapid_accel,
+            self.speeding as f32,
+            self.smooth_score,
+            self.fuel_eff,
+            self.idle_ratio,
+            self.on_time_rate,
+            self.accidents as f32,
         ]
     }
 }

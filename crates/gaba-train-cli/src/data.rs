@@ -1,10 +1,10 @@
 //! Data loading and preprocessing for route optimization models
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use ndarray::{Array1, Array2};
 use serde::Deserialize;
-use std::path::Path;
 use std::fs::File;
+use std::path::Path;
 
 /// Traffic speed data point
 #[derive(Debug, Clone, Deserialize)]
@@ -51,57 +51,56 @@ pub struct TrafficDataset {
 impl TrafficDataset {
     /// Load from CSV file
     pub fn from_csv<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut reader = csv::Reader::from_path(path)
-            .context("Failed to open CSV file")?;
-        
+        let mut reader = csv::Reader::from_path(path).context("Failed to open CSV file")?;
+
         let mut records = Vec::new();
         for result in reader.deserialize() {
             let record: TrafficRecord = result.context("Failed to parse record")?;
             records.push(record);
         }
-        
+
         let (features, targets) = Self::encode_features(&records)?;
         let feature_names = Self::feature_names();
-        
+
         Ok(Self {
             features,
             targets,
             feature_names,
         })
     }
-    
+
     /// Encode features from raw records
     fn encode_features(records: &[TrafficRecord]) -> Result<(Array2<f32>, Array1<f32>)> {
         let n_samples = records.len();
         let n_features = 22; // Cyclical time + one-hot encodings
-        
+
         let mut features = Array2::zeros((n_samples, n_features));
         let mut targets = Array1::zeros(n_samples);
-        
+
         for (i, record) in records.iter().enumerate() {
             let mut feat_idx = 0;
-            
+
             // Cyclical time encoding
             let hour_rad = 2.0 * std::f32::consts::PI * record.hour as f32 / 24.0;
             features[[i, feat_idx]] = hour_rad.sin();
             feat_idx += 1;
             features[[i, feat_idx]] = hour_rad.cos();
             feat_idx += 1;
-            
+
             let dow_rad = 2.0 * std::f32::consts::PI * record.day_of_week as f32 / 7.0;
             features[[i, feat_idx]] = dow_rad.sin();
             feat_idx += 1;
             features[[i, feat_idx]] = dow_rad.cos();
             feat_idx += 1;
-            
+
             // Holiday
             features[[i, feat_idx]] = if record.is_holiday { 1.0 } else { 0.0 };
             feat_idx += 1;
-            
+
             // Base speed
             features[[i, feat_idx]] = record.base_speed;
             feat_idx += 1;
-            
+
             // Season one-hot
             features[[i, feat_idx]] = if record.season == "winter" { 1.0 } else { 0.0 };
             feat_idx += 1;
@@ -111,21 +110,45 @@ impl TrafficDataset {
             feat_idx += 1;
             features[[i, feat_idx]] = if record.season == "fall" { 1.0 } else { 0.0 };
             feat_idx += 1;
-            
+
             // Weather one-hot
-            features[[i, feat_idx]] = if record.weather_condition == "clear" { 1.0 } else { 0.0 };
+            features[[i, feat_idx]] = if record.weather_condition == "clear" {
+                1.0
+            } else {
+                0.0
+            };
             feat_idx += 1;
-            features[[i, feat_idx]] = if record.weather_condition == "rain" { 1.0 } else { 0.0 };
+            features[[i, feat_idx]] = if record.weather_condition == "rain" {
+                1.0
+            } else {
+                0.0
+            };
             feat_idx += 1;
-            features[[i, feat_idx]] = if record.weather_condition == "heavy_rain" { 1.0 } else { 0.0 };
+            features[[i, feat_idx]] = if record.weather_condition == "heavy_rain" {
+                1.0
+            } else {
+                0.0
+            };
             feat_idx += 1;
-            features[[i, feat_idx]] = if record.weather_condition == "snow" { 1.0 } else { 0.0 };
+            features[[i, feat_idx]] = if record.weather_condition == "snow" {
+                1.0
+            } else {
+                0.0
+            };
             feat_idx += 1;
-            features[[i, feat_idx]] = if record.weather_condition == "heavy_snow" { 1.0 } else { 0.0 };
+            features[[i, feat_idx]] = if record.weather_condition == "heavy_snow" {
+                1.0
+            } else {
+                0.0
+            };
             feat_idx += 1;
-            features[[i, feat_idx]] = if record.weather_condition == "fog" { 1.0 } else { 0.0 };
+            features[[i, feat_idx]] = if record.weather_condition == "fog" {
+                1.0
+            } else {
+                0.0
+            };
             feat_idx += 1;
-            
+
             // Road segment one-hot (6 segments)
             let segment_idx = match record.road_segment_id.as_str() {
                 "GSP_Exit_83_90" => 0,
@@ -139,14 +162,14 @@ impl TrafficDataset {
             for j in 0..6 {
                 features[[i, feat_idx + j]] = if j == segment_idx { 1.0 } else { 0.0 };
             }
-            
+
             // Target
             targets[i] = record.speed_mph;
         }
-        
+
         Ok((features, targets))
     }
-    
+
     fn feature_names() -> Vec<String> {
         vec![
             "hour_sin".to_string(),
@@ -173,38 +196,38 @@ impl TrafficDataset {
             "segment_route9".to_string(),
         ]
     }
-    
+
     /// Split into train/test sets
     pub fn split(&self, test_ratio: f32) -> (Self, Self) {
         let n_samples = self.features.nrows();
         let n_test = (n_samples as f32 * test_ratio) as usize;
         let n_train = n_samples - n_test;
-        
+
         let train_features = self.features.slice(s![..n_train, ..]).to_owned();
         let train_targets = self.targets.slice(s![..n_train]).to_owned();
-        
+
         let test_features = self.features.slice(s![n_train.., ..]).to_owned();
         let test_targets = self.targets.slice(s![n_train..]).to_owned();
-        
+
         let train = Self {
             features: train_features,
             targets: train_targets,
             feature_names: self.feature_names.clone(),
         };
-        
+
         let test = Self {
             features: test_features,
             targets: test_targets,
             feature_names: self.feature_names.clone(),
         };
-        
+
         (train, test)
     }
-    
+
     pub fn len(&self) -> usize {
         self.features.nrows()
     }
-    
+
     #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -221,42 +244,41 @@ pub struct RouteDataset {
 impl RouteDataset {
     /// Load from CSV file
     pub fn from_csv<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut reader = csv::Reader::from_path(path)
-            .context("Failed to open CSV file")?;
-        
+        let mut reader = csv::Reader::from_path(path).context("Failed to open CSV file")?;
+
         let mut records = Vec::new();
         for result in reader.deserialize() {
             let record: RouteRecord = result.context("Failed to parse record")?;
             records.push(record);
         }
-        
+
         let (features, targets) = Self::encode_features(&records)?;
         let feature_names = Self::feature_names();
-        
+
         Ok(Self {
             features,
             targets,
             feature_names,
         })
     }
-    
+
     /// Encode features from raw records
     fn encode_features(records: &[RouteRecord]) -> Result<(Array2<f32>, Array1<f32>)> {
         let n_samples = records.len();
         let n_features = 15;
-        
+
         let mut features = Array2::zeros((n_samples, n_features));
         let mut targets = Array1::zeros(n_samples);
-        
+
         for (i, record) in records.iter().enumerate() {
             let mut feat_idx = 0;
-            
+
             // Basic features
             features[[i, feat_idx]] = record.stops_count as f32;
             feat_idx += 1;
             features[[i, feat_idx]] = record.total_distance_miles;
             feat_idx += 1;
-            
+
             // Derived features
             let stops_per_mile = record.stops_count as f32 / record.total_distance_miles.max(0.1);
             let avg_stop_distance = record.total_distance_miles / record.stops_count as f32;
@@ -264,20 +286,20 @@ impl RouteDataset {
             feat_idx += 1;
             features[[i, feat_idx]] = avg_stop_distance;
             feat_idx += 1;
-            
+
             // Cyclical time
             let hour_rad = 2.0 * std::f32::consts::PI * record.hour as f32 / 24.0;
             features[[i, feat_idx]] = hour_rad.sin();
             feat_idx += 1;
             features[[i, feat_idx]] = hour_rad.cos();
             feat_idx += 1;
-            
+
             let dow_rad = 2.0 * std::f32::consts::PI * record.day_of_week as f32 / 7.0;
             features[[i, feat_idx]] = dow_rad.sin();
             feat_idx += 1;
             features[[i, feat_idx]] = dow_rad.cos();
             feat_idx += 1;
-            
+
             // Season one-hot
             features[[i, feat_idx]] = if record.season == "winter" { 1.0 } else { 0.0 };
             feat_idx += 1;
@@ -287,21 +309,21 @@ impl RouteDataset {
             feat_idx += 1;
             features[[i, feat_idx]] = if record.season == "fall" { 1.0 } else { 0.0 };
             feat_idx += 1;
-            
+
             // Weather one-hot
             features[[i, feat_idx]] = if record.weather == "clear" { 1.0 } else { 0.0 };
             feat_idx += 1;
             features[[i, feat_idx]] = if record.weather == "rain" { 1.0 } else { 0.0 };
             feat_idx += 1;
             features[[i, feat_idx]] = if record.weather == "snow" { 1.0 } else { 0.0 };
-            
+
             // Target
             targets[i] = record.actual_time_minutes as f32;
         }
-        
+
         Ok((features, targets))
     }
-    
+
     fn feature_names() -> Vec<String> {
         vec![
             "stops_count".to_string(),
@@ -321,38 +343,38 @@ impl RouteDataset {
             "weather_snow".to_string(),
         ]
     }
-    
+
     /// Split into train/test sets
     pub fn split(&self, test_ratio: f32) -> (Self, Self) {
         let n_samples = self.features.nrows();
         let n_test = (n_samples as f32 * test_ratio) as usize;
         let n_train = n_samples - n_test;
-        
+
         let train_features = self.features.slice(s![..n_train, ..]).to_owned();
         let train_targets = self.targets.slice(s![..n_train]).to_owned();
-        
+
         let test_features = self.features.slice(s![n_train.., ..]).to_owned();
         let test_targets = self.targets.slice(s![n_train..]).to_owned();
-        
+
         let train = Self {
             features: train_features,
             targets: train_targets,
             feature_names: self.feature_names.clone(),
         };
-        
+
         let test = Self {
             features: test_features,
             targets: test_targets,
             feature_names: self.feature_names.clone(),
         };
-        
+
         (train, test)
     }
-    
+
     pub fn len(&self) -> usize {
         self.features.nrows()
     }
-    
+
     #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -370,19 +392,26 @@ pub fn generate_data(
 ) -> Result<()> {
     use rand::Rng;
     use std::io::Write;
-    
+
     std::fs::create_dir_all(output_dir)?;
-    
+
     // Generate traffic data
     let traffic_path = output_dir.join("traffic_speeds.csv");
     let mut traffic_file = File::create(&traffic_path)?;
     writeln!(traffic_file, "timestamp,road_segment_id,speed_mph,day_of_week,hour,season,weather_condition,is_holiday,base_speed")?;
-    
+
     let mut rng = rand::thread_rng();
-    let segments = vec!["GSP_Exit_83_90", "GSP_Exit_117_120", "GSP_Exit_29_30", "Turnpike_I95", "Route_1", "Route_9"];
+    let segments = vec![
+        "GSP_Exit_83_90",
+        "GSP_Exit_117_120",
+        "GSP_Exit_29_30",
+        "Turnpike_I95",
+        "Route_1",
+        "Route_9",
+    ];
     let seasons = vec!["winter", "spring", "summer", "fall"];
     let weather = vec!["clear", "rain", "heavy_rain", "snow", "heavy_snow", "fog"];
-    
+
     for _ in 0..traffic_samples {
         let hour = rng.gen_range(0..24);
         let dow = rng.gen_range(0..7);
@@ -392,55 +421,77 @@ pub fn generate_data(
         let base_speed = rng.gen_range(35.0..65.0);
         let speed = base_speed * rng.gen_range(0.4..1.0);
         let is_holiday = rng.gen_bool(0.05);
-        
+
         writeln!(
             traffic_file,
             "2024-01-01 {:02}:00:00,{},{:.1},{},{},{},{},{},{:.1}",
             hour, segment, speed, dow, hour, season, weather_cond, is_holiday, base_speed
         )?;
     }
-    
-    println!("Generated {} traffic samples to {:?}", traffic_samples, traffic_path);
-    
+
+    println!(
+        "Generated {} traffic samples to {:?}",
+        traffic_samples, traffic_path
+    );
+
     // Generate route data
     let route_path = output_dir.join("route_completions.csv");
     let mut route_file = File::create(&route_path)?;
     writeln!(route_file, "route_id,stops_count,total_distance_miles,predicted_time_minutes,actual_time_minutes,traffic_delay_minutes,start_time,weather,season,hour,day_of_week")?;
-    
+
     for i in 0..route_samples {
         let stops = rng.gen_range(5..30);
         let distance = stops as f32 * rng.gen_range(0.3..0.8);
         let hour = rng.gen_range(5..20);
         let dow = rng.gen_range(0..7);
         let season = seasons[rng.gen_range(0..seasons.len())];
-        let weather_cond = if rng.gen_bool(0.7) { "clear" } else if rng.gen_bool(0.5) { "rain" } else { "snow" };
+        let weather_cond = if rng.gen_bool(0.7) {
+            "clear"
+        } else if rng.gen_bool(0.5) {
+            "rain"
+        } else {
+            "snow"
+        };
         let predicted_time = (stops * 5) + ((distance / 25.0) * 60.0) as u32;
         let actual_time = predicted_time + rng.gen_range(0..30);
         let delay = actual_time.saturating_sub(predicted_time);
-        
+
         writeln!(
             route_file,
             "route_{:06},{},{:.1},{},{},{},2024-01-01 {:02}:00:00,{},{},{},{}",
-            i, stops, distance, predicted_time, actual_time, delay, hour, weather_cond, season, hour, dow
+            i,
+            stops,
+            distance,
+            predicted_time,
+            actual_time,
+            delay,
+            hour,
+            weather_cond,
+            season,
+            hour,
+            dow
         )?;
     }
-    
-    println!("Generated {} route samples to {:?}", route_samples, route_path);
-    
+
+    println!(
+        "Generated {} route samples to {:?}",
+        route_samples, route_path
+    );
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_cyclical_encoding() {
         let hour = 6u32;
         let rad = 2.0 * std::f32::consts::PI * hour as f32 / 24.0;
         let sin = rad.sin();
         let cos = rad.cos();
-        
+
         assert!((sin - 1.0).abs() < 0.01);
         assert!(cos.abs() < 0.01);
     }

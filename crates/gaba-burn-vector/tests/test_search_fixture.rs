@@ -9,8 +9,17 @@ fn test_search_with_fixture() {
     for item in parsed.as_array().unwrap() {
         let id = item["id"].as_str().unwrap().to_string();
         let content = item["content"].as_str().unwrap().to_string();
-    let vec: Vec<f32> = item["vector"].as_array().unwrap().iter().map(|v| v.as_f64().unwrap() as f32).collect();
-        let meta = VectorMetadata { title: id.clone(), source_path: id.clone(), content };
+        let vec: Vec<f32> = item["vector"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_f64().unwrap() as f32)
+            .collect();
+        let meta = VectorMetadata {
+            title: id.clone(),
+            source_path: id.clone(),
+            content,
+        };
         vectors.push((id, vec, meta));
     }
 

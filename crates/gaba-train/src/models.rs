@@ -2,7 +2,7 @@
 
 use burn::{
     module::Module,
-    nn::{Linear, LinearConfig, Dropout, DropoutConfig, Relu},
+    nn::{Dropout, DropoutConfig, Linear, LinearConfig, Relu},
     tensor::{backend::Backend, Tensor},
 };
 
@@ -21,7 +21,7 @@ impl<B: Backend> TrafficModel<B> {
     /// Create new traffic model
     pub fn new(device: &B::Device) -> Self {
         Self {
-            fc1: LinearConfig::new(22, 64).init(device),
+            fc1: LinearConfig::new(21, 64).init(device),
             dropout1: DropoutConfig::new(0.2).init(),
             fc2: LinearConfig::new(64, 32).init(device),
             dropout2: DropoutConfig::new(0.2).init(),
@@ -29,22 +29,22 @@ impl<B: Backend> TrafficModel<B> {
             activation: Relu::new(),
         }
     }
-    
+
     /// Forward pass
     pub fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
         let x = self.fc1.forward(input);
         let x = self.activation.forward(x);
         let x = self.dropout1.forward(x);
-        
+
         let x = self.fc2.forward(x);
         let x = self.activation.forward(x);
         let x = self.dropout2.forward(x);
-        
+
         self.fc3.forward(x)
     }
-    
+
     /// Save model to file
-    pub fn save(&self, path: &str) -> anyhow::Result<()> {
+    pub fn save(&self, _path: &str) -> anyhow::Result<()> {
         // TODO: Implement ONNX export via burn-import
         Ok(())
     }
@@ -73,22 +73,22 @@ impl<B: Backend> RouteModel<B> {
             activation: Relu::new(),
         }
     }
-    
+
     /// Forward pass
     pub fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
         let x = self.fc1.forward(input);
         let x = self.activation.forward(x);
         let x = self.dropout1.forward(x);
-        
+
         let x = self.fc2.forward(x);
         let x = self.activation.forward(x);
         let x = self.dropout2.forward(x);
-        
+
         self.fc3.forward(x)
     }
-    
+
     /// Save model to file
-    pub fn save(&self, path: &str) -> anyhow::Result<()> {
+    pub fn save(&self, _path: &str) -> anyhow::Result<()> {
         // TODO: Implement ONNX export via burn-import
         Ok(())
     }
@@ -98,23 +98,23 @@ impl<B: Backend> RouteModel<B> {
 mod tests {
     use super::*;
     use burn::backend::NdArray;
-    
+
     type TestBackend = NdArray;
-    
+
     #[test]
     fn test_traffic_model_creation() {
         let device = Default::default();
         let model: TrafficModel<TestBackend> = TrafficModel::new(&device);
-        
+
         // Model should be created successfully
         assert!(true);
     }
-    
+
     #[test]
     fn test_route_model_creation() {
         let device = Default::default();
         let model: RouteModel<TestBackend> = RouteModel::new(&device);
-        
+
         // Model should be created successfully
         assert!(true);
     }

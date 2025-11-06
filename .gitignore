@@ -18,6 +18,8 @@ out
 
 # Virtual Environment of Python
 .venv
+venv/
+venv-py311/
 uv.lock
 
 # Nix direnv
